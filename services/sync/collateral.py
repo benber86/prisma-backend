@@ -6,6 +6,7 @@ from database.models.troves import PriceRecord
 from database.queries.collateral import get_collateral_address_by_id
 from database.queries.price_records import get_latest_price_record_timestamp
 from database.utils import upsert_query
+from services.celery import celery
 from utils.const import SUBGRAPHS
 from utils.subgraph.query import async_grt_query
 
@@ -28,6 +29,7 @@ PRICE_RECORDS_QUERY = """
 """
 
 
+@celery.task
 async def update_price_records(chain: str, collateral_id: int):
     endpoint = SUBGRAPHS[chain]
     last_timestamp = await get_latest_price_record_timestamp(collateral_id)

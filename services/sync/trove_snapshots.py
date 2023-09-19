@@ -11,6 +11,7 @@ from database.models.troves import (
 )
 from database.queries.trove_manager import get_manager_address_by_id_and_chain
 from database.utils import insert_ignore_query, upsert_query
+from services.celery import celery
 from services.sync.utils import get_snapshot_query_setup
 from utils.const import CHAINS
 from utils.subgraph.query import async_grt_query
@@ -201,6 +202,7 @@ async def _update_trove(manager_id: int, trove: dict) -> str:
     return await db.execute(query)
 
 
+@celery.task
 async def update_trove_snapshots(
     chain: str, manager_id: int, from_index: int, to_index: int | None
 ):

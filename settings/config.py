@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     class Config:
         os.environ["FASTAPI_TITLE"] = "Prisma backend"
-        env_file = Path(BASE_DIR, "settings", "env")
+        env_file = Path(BASE_DIR, ".env")
         dotenv.load_dotenv(env_file)
 
 

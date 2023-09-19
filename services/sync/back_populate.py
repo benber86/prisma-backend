@@ -6,6 +6,7 @@ from database.engine import db, in_db_engine
 from database.models.common import Chain
 from database.models.troves import Collateral, StabilityPool, TroveManager
 from database.utils import update_by_id_query, upsert_query
+from services.celery import celery
 from services.sync.collateral import update_price_records
 from services.sync.models import ChainData
 from services.sync.populate_entities import insert_main_entities
@@ -30,9 +31,14 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def back_populate():
+def back_populate_all():
     for chain, chain_id in CHAINS.items():
         asyncio.run(in_db_engine(sync_from_subgraph)(chain, chain_id))
+
+
+@celery.task
+def back_populate_chain(chain: str, chain_id: int):
+    asyncio.run(in_db_engine(sync_from_subgraph)(chain, chain_id))
 
 
 async def _update_stability_pool(
@@ -221,4 +227,4 @@ async def sync_from_subgraph(
 
 
 if __name__ == "__main__":
-    back_populate()
+    back_populate_all()

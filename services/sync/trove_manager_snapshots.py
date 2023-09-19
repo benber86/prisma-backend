@@ -5,6 +5,7 @@ from database.engine import db
 from database.models.troves import TroveManagerParameter, TroveManagerSnapshot
 from database.queries.trove_manager import get_manager_address_by_id_and_chain
 from database.utils import upsert_query
+from services.celery import celery
 from services.sync.utils import get_snapshot_query_setup
 from utils.const import CHAINS
 from utils.subgraph.query import async_grt_query
@@ -64,6 +65,7 @@ TROVE_MANAGER_SNAPSHOT_QUERY = """
 """
 
 
+@celery.task
 async def _update_parameters(
     manager_id: int, parameters: dict | None
 ) -> str | None:

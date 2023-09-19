@@ -10,6 +10,7 @@ from database.models.troves import (
 from database.queries.collateral import get_collateral_id_by_chain_and_address
 from database.queries.stability_pool import get_stability_pool_id_by_chain_id
 from database.utils import upsert_query
+from services.celery import celery
 from services.sync.utils import get_snapshot_query_setup
 from utils.const import CHAINS
 from utils.subgraph.query import async_grt_query
@@ -72,6 +73,7 @@ def _str_to_enum_type(
     return op_type_mapping[op_type]
 
 
+@celery.task
 async def update_pool_snapshots(
     chain: str, from_index: int, to_index: int | None
 ):
@@ -109,6 +111,7 @@ async def update_pool_snapshots(
             await db.execute(query)
 
 
+@celery.task
 async def update_pool_operations(
     chain: str, from_index: int, to_index: int | None
 ):
