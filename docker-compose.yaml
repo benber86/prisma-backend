@@ -89,7 +89,7 @@ services:
       POSTGRES_PASSWORD: $PG_PASSWORD
       POSTGRES_DB: $PG_DATABASE
     volumes:
-      - local_pgdata:/var/lib/postgresql/data
+      - prisma_pgdata:/var/lib/postgresql/data
 
 volumes:
-  local_pgdata:
+  prisma_pgdata:

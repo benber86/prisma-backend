@@ -1,4 +1,4 @@
-import sqlalchemy as sa
+from sqlalchemy import BigInteger, Column, DateTime, MetaData, text
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 
 # @see https://alembic.sqlalchemy.org/en/latest/naming.html
@@ -13,7 +13,7 @@ convention = {
     "pk": "pk__%(table_name)s",
 }
 
-metadata = sa.MetaData(naming_convention=convention)
+metadata = MetaData(naming_convention=convention)
 
 
 @as_declarative(metadata=metadata)
@@ -22,12 +22,12 @@ class Base:
 
     @declared_attr
     def id(cls):
-        return sa.Column(sa.BigInteger, primary_key=True)
+        return Column(BigInteger, primary_key=True)
 
     @declared_attr
     def created_at(cls):
-        return sa.Column(
-            sa.DateTime,
-            server_default=sa.text("clock_timestamp()"),
+        return Column(
+            DateTime,
+            server_default=text("clock_timestamp()"),
             nullable=False,
         )
