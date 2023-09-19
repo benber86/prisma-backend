@@ -9,12 +9,11 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
-    Table,
-    Text,
 )
 from sqlalchemy.orm import relationship
 
 from database.base import Base
+from database.models.common import Chain
 
 
 class Protocol(Base):
@@ -24,7 +23,7 @@ class Protocol(Base):
     start_time = Column(Numeric)
     price_feed = Column(String)
     lockers_count = Column(Integer)
-    chain = relationship("Chain")
+    chain = relationship("Chain", backref="protocols")
 
     __table_args__ = (
         Index(
