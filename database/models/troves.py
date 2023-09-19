@@ -74,6 +74,8 @@ class TroveManagerParameter(Base):
     borrowing_fee_floor = Column(Numeric)
     max_borrowing_fee = Column(Numeric)
     max_system_debt = Column(Numeric)
+    interest_rate = Column(Numeric)
+    mcr = Column(Numeric)
     block_number = Column(Numeric)
     block_timestamp = Column(Numeric)
     transaction_hash = Column(String)

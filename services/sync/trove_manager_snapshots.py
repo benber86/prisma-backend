@@ -52,6 +52,8 @@ TROVE_MANAGER_SNAPSHOT_QUERY = """
       maxBorrowingFee
       maxSystemDebt
       maxRedemptionFee
+      interestRate
+      mcr
       blockNumber
       blockTimestamp
       transactionHash
@@ -87,6 +89,8 @@ async def _update_parameters(
             "max_borrowing_fee": Decimal(parameters["maxBorrowingFee"])
             / 10**18,
             "max_system_debt": Decimal(parameters["maxSystemDebt"]) / 10**18,
+            "mcr": Decimal(parameters["mcr"]) / 10**18,
+            "interest_rate": Decimal(parameters["interestRate"]) / 10**18,
             "block_number": parameters["blockTimestamp"],
             "transaction_hash": parameters["transactionHash"],
         }
