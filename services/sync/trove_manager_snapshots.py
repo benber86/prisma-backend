@@ -1,11 +1,16 @@
 import logging
 from decimal import Decimal
 
+from api.routes.v1.websocket.troves_overview.models import (
+    TroveOverviewSettings,
+)
 from database.engine import db
 from database.models.troves import TroveManagerParameter, TroveManagerSnapshot
 from database.queries.trove_manager import get_manager_address_by_id_and_chain
 from database.utils import upsert_query
 from services.celery import celery
+from services.messaging.handler import TROVE_OVERVIEW_UPDATE
+from services.messaging.pubsub import publish_message
 from services.sync.utils import get_snapshot_query_setup
 from utils.const import CHAINS
 from utils.subgraph.query import async_grt_query
@@ -180,3 +185,6 @@ async def update_manager_snapshots(
             }
             query = upsert_query(TroveManagerSnapshot, indexes, data)
             await db.execute(query)
+    # push update to fastApi
+    message = TroveOverviewSettings(chain=chain).json()
+    await publish_message(TROVE_OVERVIEW_UPDATE, message)

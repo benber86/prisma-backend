@@ -22,7 +22,6 @@ class TroveManagerDetails(BaseModel):
 
 class TroveOverviewSettings(BaseModel):
     chain: str
-    pagination: Pagination | None
 
 
 class TroveOverviewPayload(BaseModel):

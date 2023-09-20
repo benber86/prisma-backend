@@ -11,9 +11,8 @@ from database.models.troves import (
 
 
 async def get_trove_manager_details(
-    chain_id: int, page: int = 1, items: int = 10
+    chain_id: int,
 ) -> list[TroveManagerDetails]:
-    offset = (page - 1) * items
 
     subquery = (
         select(
@@ -59,8 +58,6 @@ async def get_trove_manager_details(
                 == subquery.c.latest_timestamp
             )
         )
-        .offset(offset)
-        .limit(items)
     )
 
     results = await db.fetch_all(query)

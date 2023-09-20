@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import sys
+import traceback
 
-from database.engine import db, in_db_engine
+from database.engine import db, wrap_dbs
 from database.models.common import Chain
 from database.models.troves import Collateral, StabilityPool, TroveManager
 from database.utils import update_by_id_query, upsert_query
@@ -33,12 +34,12 @@ logger.addHandler(handler)
 
 def back_populate_all():
     for chain, chain_id in CHAINS.items():
-        asyncio.run(in_db_engine(sync_from_subgraph)(chain, chain_id))
+        asyncio.run(wrap_dbs(sync_from_subgraph)(chain, chain_id))
 
 
 @celery.task
 def back_populate_chain(chain: str, chain_id: int):
-    asyncio.run(in_db_engine(sync_from_subgraph)(chain, chain_id))
+    asyncio.run(wrap_dbs(sync_from_subgraph)(chain, chain_id))
 
 
 async def _update_stability_pool(
@@ -60,7 +61,7 @@ async def _update_stability_pool(
         except Exception as e:
             # we need to reset snapshot counts so that next attempts won't skip over the missed data
             logger.error(
-                f"Error updating stability pool snaphsots: {e} \n Resetting snapshot count to previous value. \n Old data: {previous_data}\n New data: {new_data}"
+                f"Error updating stability pool snaphsots: {e} \n Resetting snapshot count to previous value. \n Old data: {previous_data}\n New data: {new_data}\n{traceback.format_exc()}"
             )
             query = upsert_query(
                 StabilityPool,
@@ -86,7 +87,7 @@ async def _update_stability_pool(
             )
         except Exception as e:
             logger.error(
-                f"Error updating stability pool operations: {e} \n Resetting operations count to previous value. "
+                f"Error updating stability pool operations: {e} \n Resetting operations count to previous value. \n{traceback.format_exc()}"
             )
 
             query = upsert_query(
@@ -117,7 +118,7 @@ async def _update_collateral(
                 )
             except Exception as e:
                 logger.error(
-                    f"Could not update price records, reverting collateral price data: {e}"
+                    f"Could not update price records, reverting collateral price data: {e}\n{traceback.format_exc()}"
                 )
                 data = {
                     "latest_price": previous_data.collateral_data[
@@ -155,7 +156,7 @@ async def _update_manager(
                 )
             except Exception as e:
                 logger.error(
-                    f"Error updating manager snapshots: {e}, resetting snapshout count"
+                    f"Error updating manager snapshots: {e}, resetting snapshout count\n{traceback.format_exc()}"
                 )
                 data = {
                     "snapshots_count": previous_data.trove_manager_data[
@@ -188,7 +189,7 @@ async def _update_manager(
                 )
             except Exception as e:
                 logger.error(
-                    f"Error updating trove snapshots: {e}, resetting snapshout count"
+                    f"Error updating trove snapshots: {e}, resetting snapshout count\n{traceback.format_exc()}"
                 )
                 data = {
                     "trove_snapshots_count": previous_data.trove_manager_data[

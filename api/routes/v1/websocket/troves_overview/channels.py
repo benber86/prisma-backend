@@ -31,17 +31,9 @@ async def parse_trove_overview_client_message(
         channel = Channels.troves_overview.value
         channel_sub = f"{channel}_{chain_id}"
         if action == Action.subscribe:
-            await manager.send_message(
-                websocket, f"Subscription currently unsupported"
-            )
+            manager.subscribe(websocket, channel_sub, settings)
         elif action == Action.snapshots:
-            page = settings.pagination.page if settings.pagination else 1
-            items = (
-                min(settings.pagination.pagination, 100)
-                if settings.pagination
-                else 10
-            )
-            markets = await get_trove_manager_details(chain_id, page, items)
+            markets = await get_trove_manager_details(chain_id)
             data = TroveOverviewPayload(
                 channel=channel,
                 subscription=settings,
