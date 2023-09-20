@@ -8,7 +8,7 @@ from api.routes.v1.router import compiled_routers as compiled_routers_v1
 from database.engine import db
 from database.pool import pg_notify_pool
 from services.messaging.pubsub import listen_for_redis_notifications
-from services.messaging.redis import close_redis_pool
+from services.messaging.redis import close_redis
 from settings.config import settings
 
 init_logger(is_debug=settings.DEBUG)
@@ -44,6 +44,6 @@ async def startup_db():
 
 @app.on_event("shutdown")
 async def shutdown_db():
+    await close_redis("fastapi")
     await db.disconnect()
-    await asyncio.wait_for(pg_notify_pool.close_pool(), timeout=60.0)
-    await close_redis_pool("fastapi")
+    await asyncio.wait_for(pg_notify_pool.close_pool(), timeout=10.0)

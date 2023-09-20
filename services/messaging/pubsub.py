@@ -7,7 +7,7 @@ from services.messaging.handler import (
     REDIS_MESSAGING_CHANNELS,
     parse_incoming_messages,
 )
-from services.messaging.redis import get_redis_pool
+from services.messaging.redis import get_redis_client
 
 logger = logging.getLogger()
 
@@ -17,8 +17,7 @@ async def publish_message(
 ):
     for _ in range(retries):
         try:
-            pool = await get_redis_pool("celery")
-            redis_client = aioredis.Redis(connection_pool=pool)
+            redis_client = await get_redis_client("celery")
             await redis_client.publish(channel, data)
             return
         except aioredis.ConnectionError:
@@ -29,8 +28,7 @@ async def publish_message(
 async def listen_for_redis_notifications():
     while True:
         try:
-            pool = await get_redis_pool("fastapi")
-            redis_client = aioredis.Redis(connection_pool=pool)
+            redis_client = await get_redis_client("fastapi")
 
             pubsub = redis_client.pubsub()
             for channel in REDIS_MESSAGING_CHANNELS:
