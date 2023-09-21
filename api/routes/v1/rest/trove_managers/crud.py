@@ -34,7 +34,7 @@ async def get_historical_collateral_ratios(
 
     subquery = (
         select(
-            Collateral.name,
+            Collateral.symbol,
             rounded_timestamp.label("rounded_date"),
             func.avg(TroveManagerSnapshot.collateral_ratio).label(
                 "avg_collateral_ratio"
@@ -45,7 +45,7 @@ async def get_historical_collateral_ratios(
             Collateral.manager_id == TroveManagerSnapshot.manager_id,
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .group_by(Collateral.name, rounded_timestamp)
+        .group_by(Collateral.symbol, rounded_timestamp)
         .filter(
             (TroveManagerSnapshot.block_timestamp >= start_timestamp)
             & (TroveManager.chain_id == chain_id)
@@ -147,7 +147,7 @@ async def get_open_troves_overview(
 
     query = (
         select(
-            Collateral.name,
+            Collateral.symbol,
             rounded_timestamp.label("rounded_date"),
             func.max(TroveManagerSnapshot.open_troves).label(
                 "max_open_troves"
@@ -159,7 +159,7 @@ async def get_open_troves_overview(
             (TroveManager.chain_id == chain_id)
             & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
         )
-        .group_by(Collateral.name, rounded_timestamp)
+        .group_by(Collateral.symbol, rounded_timestamp)
     )
 
     results = await db.fetch_all(query)
