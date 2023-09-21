@@ -59,14 +59,14 @@ async def get_historical_collateral_ratios(
 
     markets_data: dict[str, list[DecimalTimeSeries]] = {}
     for r in results:
-        if r.name not in markets_data:
-            markets_data[r.name] = []
+        if r.symbol not in markets_data:
+            markets_data[r.symbol] = []
         if float(r.avg_collateral_ratio) == 0:
             continue
         data_point = DecimalTimeSeries(
             value=float(r.avg_collateral_ratio), timestamp=r.rounded_date
         )
-        markets_data[r.name].append(data_point)
+        markets_data[r.symbol].append(data_point)
 
     formatted_data = [
         HistoricalTroveManagerData(manager=market, data=data)
@@ -168,7 +168,7 @@ async def get_open_troves_overview(
 
     df = pd.DataFrame(results_dict)
     df_pivot = df.pivot(
-        index="rounded_date", columns="name", values="max_open_troves"
+        index="rounded_date", columns="symbol", values="max_open_troves"
     )
     df_pivot.ffill(inplace=True)
 
