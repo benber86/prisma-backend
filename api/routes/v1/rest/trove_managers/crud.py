@@ -301,14 +301,15 @@ async def get_historical_collateral_usd(
 
     subquery = (
         select(
-            TroveManager.address,
+            Collateral.symbol,
             rounded_timestamp.label("rounded_date"),
             func.avg(TroveManagerSnapshot.total_collateral_usd).label(
                 "avg_collateral_usd"
             ),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .group_by(TroveManager.address, rounded_timestamp)
+        .join(Collateral, Collateral.manager_id == TroveManager.id)
+        .group_by(Collateral.symbol, rounded_timestamp)
         .filter(
             (TroveManager.chain_id == chain_id)
             & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
@@ -322,7 +323,7 @@ async def get_historical_collateral_usd(
 
     df = pd.DataFrame(trove_data_dict)
     df_pivot = df.pivot(
-        index="rounded_date", columns="address", values="avg_collateral_usd"
+        index="rounded_date", columns="symbol", values="avg_collateral_usd"
     )
     df_pivot.ffill(inplace=True)
     df_pivot.fillna(0, inplace=True)
