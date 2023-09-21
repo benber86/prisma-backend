@@ -1,11 +1,12 @@
-import aiocache
 import pandas as pd
 from aiocache import Cache, cached
-from sqlalchemy import distinct, func, select
+from sqlalchemy import and_, desc, distinct, func, select
 
 from api.models.common import DecimalTimeSeries, Period
 from api.routes.utils.time import SECONDS_IN_DAY, apply_period
 from api.routes.v1.rest.trove_managers.models import (
+    CollateralRatioDecilesData,
+    CollateralRatioDistributionResponse,
     HistoricalCollateralRatioResponse,
     HistoricalOpenedTroves,
     HistoricalOpenedTrovesResponse,
@@ -14,11 +15,11 @@ from api.routes.v1.rest.trove_managers.models import (
 from database.engine import db
 from database.models.troves import (
     Collateral,
+    Trove,
     TroveManager,
     TroveManagerSnapshot,
+    TroveSnapshot,
 )
-
-cache = Cache(Cache.MEMORY)
 
 
 async def get_historical_collateral_ratios(
@@ -147,7 +148,7 @@ async def get_global_collateral_ratio(
     return HistoricalTroveManagerCR(trove="global", data=data_points)
 
 
-@cached(ttl=300, cache=cache)
+@cached(ttl=300, cache=Cache.MEMORY)
 async def get_open_troves_overview(
     chain_id: int, period: Period
 ) -> HistoricalOpenedTrovesResponse:
@@ -201,3 +202,104 @@ async def get_open_troves_overview(
     ]
 
     return HistoricalOpenedTrovesResponse(troves=trove_data_list)
+
+
+@cached(ttl=300, cache=Cache.MEMORY)
+async def get_health_overview(
+    chain_id: int,
+) -> CollateralRatioDistributionResponse:
+
+    open_troves = (
+        select([Trove.id.label("trove_id")])
+        .join(TroveManager, Trove.manager_id == TroveManager.id)
+        .where(
+            (Trove.status == Trove.TroveStatus.open)
+            & (TroveManager.chain_id == chain_id)
+        )
+        .alias()
+    )
+
+    latest_trove_snapshots = (
+        select(
+            [
+                TroveSnapshot.trove_id,
+                func.max(TroveSnapshot.block_timestamp).label(
+                    "latest_timestamp"
+                ),
+            ]
+        )
+        .where(TroveSnapshot.trove_id.in_(open_troves))
+        .group_by(TroveSnapshot.trove_id)
+        .alias()
+    )
+
+    last_manager_snapshots = (
+        select(
+            [
+                TroveManagerSnapshot.manager_id,
+                TroveManagerSnapshot.collateral_price,
+            ]
+        )
+        .order_by(
+            TroveManagerSnapshot.manager_id,
+            desc(TroveManagerSnapshot.block_timestamp),
+            desc(TroveManagerSnapshot.id),
+        )
+        .distinct(TroveManagerSnapshot.manager_id)
+        .alias()
+    )
+
+    trove_data_query = (
+        select(
+            [
+                TroveSnapshot.trove_id,
+                TroveSnapshot.debt,
+                (
+                    TroveSnapshot.collateral
+                    * last_manager_snapshots.c.collateral_price
+                ).label("collateral_value"),
+                (
+                    (
+                        TroveSnapshot.collateral
+                        * last_manager_snapshots.c.collateral_price
+                    )
+                    / TroveSnapshot.debt
+                ).label("collateral_ratio"),
+            ]
+        )
+        .join(
+            latest_trove_snapshots,
+            and_(
+                TroveSnapshot.trove_id == latest_trove_snapshots.c.trove_id,
+                TroveSnapshot.block_timestamp
+                == latest_trove_snapshots.c.latest_timestamp,
+            ),
+        )
+        .join(Trove, Trove.id == TroveSnapshot.trove_id)
+        .join(
+            last_manager_snapshots,
+            Trove.manager_id == last_manager_snapshots.c.manager_id,
+        )
+        .where(Trove.status == Trove.TroveStatus.open)
+    )
+
+    trove_data = await db.fetch_all(trove_data_query)
+    trove_data_dict = [dict(row) for row in trove_data]
+
+    df = pd.DataFrame(trove_data_dict)
+    df = df.applymap(float)
+    df["collateral_decile"], bins = pd.qcut(
+        df["collateral_ratio"], 10, retbins=True, labels=False
+    )
+    labels = [
+        f"[{round(bins[i] * 100, 2)}% - {round(bins[i + 1] * 100, 2)}%)"
+        for i in range(10)
+    ]
+    df["decile"] = df["collateral_decile"].map(lambda x: labels[x])
+    debt_by_decile = df.groupby("decile")["debt"].sum().reset_index()
+    deciles_data = [
+        CollateralRatioDecilesData(label=row["decile"], data=row["debt"])
+        for row in debt_by_decile.to_dict(orient="records")
+    ]
+
+    return CollateralRatioDistributionResponse(deciles=deciles_data)

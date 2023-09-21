@@ -4,10 +4,12 @@ from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.logger import get_logger
 from api.routes.v1.rest.trove_managers.crud import (
     get_global_collateral_ratio,
+    get_health_overview,
     get_historical_collateral_ratios,
     get_open_troves_overview,
 )
 from api.routes.v1.rest.trove_managers.models import (
+    CollateralRatioDistributionResponse,
     FilterSet,
     HistoricalCollateralRatioResponse,
     HistoricalOpenedTrovesResponse,
@@ -71,3 +73,20 @@ async def get_historical_open_troves(
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_open_troves_overview(CHAINS[chain], filter_set.period))
+
+
+@router.get(
+    "/{chain}/ratio_distribution",
+    response_model=CollateralRatioDistributionResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get debt distribution across CR deciles"
+        )
+    ),
+)
+async def get_cr_deciles_overview(chain: str):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_health_overview(CHAINS[chain]))

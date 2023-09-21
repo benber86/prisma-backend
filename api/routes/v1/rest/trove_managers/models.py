@@ -26,3 +26,12 @@ class HistoricalOpenedTroves(BaseModel):
 
 class HistoricalOpenedTrovesResponse(BaseModel):
     troves: list[HistoricalOpenedTroves]
+
+
+class CollateralRatioDecilesData(BaseModel):
+    label: str
+    data: float
+
+
+class CollateralRatioDistributionResponse(BaseModel):
+    deciles: list[CollateralRatioDecilesData]
