@@ -180,7 +180,6 @@ async def get_open_troves_overview(
             data=[
                 DecimalTimeSeries(timestamp=date, value=value)
                 for date, value in trove_data.items()
-                if value != 0
             ],
         )
         for trove_name, trove_data in data_dict.items()
