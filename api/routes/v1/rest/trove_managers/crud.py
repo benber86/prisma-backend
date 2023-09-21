@@ -1,16 +1,17 @@
+import numpy as np
 import pandas as pd
 from aiocache import Cache, cached
-from sqlalchemy import and_, desc, distinct, func, select
+from sqlalchemy import and_, desc, func, select
 
 from api.models.common import DecimalTimeSeries, Period
 from api.routes.utils.time import SECONDS_IN_DAY, apply_period
 from api.routes.v1.rest.trove_managers.models import (
     CollateralRatioDecilesData,
     CollateralRatioDistributionResponse,
-    HistoricalCollateralRatioResponse,
     HistoricalOpenedTroves,
     HistoricalOpenedTrovesResponse,
-    HistoricalTroveManagerCR,
+    HistoricalTroveManagerData,
+    HistoricalTroveOverviewResponse,
 )
 from database.engine import db
 from database.models.troves import (
@@ -24,7 +25,7 @@ from database.models.troves import (
 
 async def get_historical_collateral_ratios(
     chain_id: int, period: Period
-) -> HistoricalCollateralRatioResponse:
+) -> HistoricalTroveOverviewResponse:
     start_timestamp = apply_period(period)
     rounded_timestamp = (
         func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
@@ -68,84 +69,69 @@ async def get_historical_collateral_ratios(
         markets_data[r.name].append(data_point)
 
     formatted_data = [
-        HistoricalTroveManagerCR(trove=market, data=data)
+        HistoricalTroveManagerData(manager=market, data=data)
         for market, data in markets_data.items()
     ]
 
-    return HistoricalCollateralRatioResponse(troves=formatted_data)
+    return HistoricalTroveOverviewResponse(managers=formatted_data)
 
 
 async def get_global_collateral_ratio(
     chain_id: int, period: Period
-) -> HistoricalTroveManagerCR:
+) -> HistoricalTroveManagerData:
+
     start_timestamp = apply_period(period)
     rounded_timestamp = (
         func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
         * SECONDS_IN_DAY
     )
 
-    cte_manager_count = (
+    subquery = (
         select(
+            TroveManager.address,
             rounded_timestamp.label("rounded_date"),
-            func.count(distinct(TroveManagerSnapshot.manager_id)).label(
-                "manager_count"
+            func.avg(TroveManagerSnapshot.total_collateral_usd).label(
+                "avg_collateral_usd"
             ),
-        )
-        .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .filter(TroveManager.chain_id == chain_id)
-        .group_by(rounded_timestamp)
-        .cte(name="cte_manager_count")
-    )
-
-    cte_aggregate = (
-        select(
-            rounded_timestamp.label("rounded_date"),
-            func.sum(TroveManagerSnapshot.total_collateral_usd).label(
-                "sum_collateral_usd"
-            ),
-            func.sum(TroveManagerSnapshot.total_debt).label("sum_debt"),
+            func.avg(TroveManagerSnapshot.total_debt).label("avg_debt"),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
         .filter(
             (TroveManager.chain_id == chain_id)
             & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
         )
-        .group_by(rounded_timestamp)
-        .cte(name="cte_aggregate")
+        .group_by(TroveManager.address, rounded_timestamp)
+        .order_by(rounded_timestamp)
     )
 
-    total_managers = await db.fetch_val(
-        select(func.count(distinct(TroveManager.id))).where(
-            TroveManager.chain_id == chain_id
-        )
+    results = await db.fetch_all(subquery)
+
+    df = pd.DataFrame([dict(row) for row in results])
+
+    df_collateral = df.pivot(
+        index="rounded_date", columns="address", values="avg_collateral_usd"
+    )
+    df_debt = df.pivot(
+        index="rounded_date", columns="address", values="avg_debt"
     )
 
-    final_query = (
-        select(
-            cte_aggregate.c.rounded_date,
-            cte_aggregate.c.sum_collateral_usd,
-            cte_aggregate.c.sum_debt,
-        )
-        .join(
-            cte_manager_count,
-            cte_manager_count.c.rounded_date == cte_aggregate.c.rounded_date,
-        )
-        .where(cte_manager_count.c.manager_count == total_managers)
-        .order_by(cte_aggregate.c.rounded_date.asc())
-    )
+    df_collateral.ffill(inplace=True)
+    df_debt.ffill(inplace=True)
 
-    results = await db.fetch_all(final_query)
+    df_collateral.fillna(0, inplace=True)
+    df_debt.fillna(0, inplace=True)
+
+    global_collateral = df_collateral.sum(axis=1)
+    global_debt = df_debt.sum(axis=1)
+    global_collateral_ratio = (global_collateral / global_debt).astype(float)
 
     data_points = [
-        DecimalTimeSeries(
-            value=float(row["sum_collateral_usd"] / row["sum_debt"]),
-            timestamp=row["rounded_date"],
-        )
-        for row in results
-        if row["sum_debt"] != 0 and row["sum_collateral_usd"] != 0
+        DecimalTimeSeries(value=float(ratio), timestamp=index)
+        for index, ratio in global_collateral_ratio.items()
+        if not np.isnan(ratio) and ratio != 0
     ]
 
-    return HistoricalTroveManagerCR(trove="global", data=data_points)
+    return HistoricalTroveManagerData(manager="global", data=data_points)
 
 
 @cached(ttl=300, cache=Cache.MEMORY)
@@ -167,9 +153,7 @@ async def get_open_troves_overview(
             ),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .join(
-            Collateral, Collateral.manager_id == TroveManager.id
-        )  # Corrected join here
+        .join(Collateral, Collateral.manager_id == TroveManager.id)
         .filter(
             (TroveManager.chain_id == chain_id)
             & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
@@ -191,7 +175,7 @@ async def get_open_troves_overview(
 
     trove_data_list = [
         HistoricalOpenedTroves(
-            trove=trove_name,
+            manager=trove_name,
             data=[
                 DecimalTimeSeries(timestamp=date, value=value)
                 for date, value in trove_data.items()
@@ -201,7 +185,7 @@ async def get_open_troves_overview(
         for trove_name, trove_data in data_dict.items()
     ]
 
-    return HistoricalOpenedTrovesResponse(troves=trove_data_list)
+    return HistoricalOpenedTrovesResponse(managers=trove_data_list)
 
 
 @cached(ttl=300, cache=Cache.MEMORY)
@@ -303,3 +287,53 @@ async def get_health_overview(
     ]
 
     return CollateralRatioDistributionResponse(deciles=deciles_data)
+
+
+@cached(ttl=300, cache=Cache.MEMORY)
+async def get_historical_collateral_usd(
+    chain_id: int, period: Period
+) -> HistoricalTroveOverviewResponse:
+    start_timestamp = apply_period(period)
+    rounded_timestamp = (
+        func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
+        * SECONDS_IN_DAY
+    )
+
+    subquery = (
+        select(
+            TroveManager.address,
+            rounded_timestamp.label("rounded_date"),
+            func.avg(TroveManagerSnapshot.total_collateral_usd).label(
+                "avg_collateral_usd"
+            ),
+        )
+        .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
+        .group_by(TroveManager.address, rounded_timestamp)
+        .filter(
+            (TroveManager.chain_id == chain_id)
+            & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
+            & (TroveManagerSnapshot.total_collateral_usd.isnot(None))
+        )
+        .order_by(rounded_timestamp)
+    ).alias("average_collaterals")
+
+    results = await db.fetch_all(subquery)
+    trove_data_dict = [dict(row) for row in results]
+
+    df = pd.DataFrame(trove_data_dict)
+    df_pivot = df.pivot(
+        index="rounded_date", columns="address", values="avg_collateral_usd"
+    )
+    df_pivot.ffill(inplace=True)
+    df_pivot.fillna(0, inplace=True)
+    troves_data = []
+    for col in df_pivot.columns:
+        time_series_data = [
+            DecimalTimeSeries(value=row[col], timestamp=index)
+            for index, row in df_pivot.iterrows()
+        ]
+        troves_data.append(
+            HistoricalTroveManagerData(manager=col, data=time_series_data)
+        )
+
+    return HistoricalTroveOverviewResponse(managers=troves_data)

@@ -6,14 +6,15 @@ from api.routes.v1.rest.trove_managers.crud import (
     get_global_collateral_ratio,
     get_health_overview,
     get_historical_collateral_ratios,
+    get_historical_collateral_usd,
     get_open_troves_overview,
 )
 from api.routes.v1.rest.trove_managers.models import (
     CollateralRatioDistributionResponse,
     FilterSet,
-    HistoricalCollateralRatioResponse,
     HistoricalOpenedTrovesResponse,
-    HistoricalTroveManagerCR,
+    HistoricalTroveManagerData,
+    HistoricalTroveOverviewResponse,
 )
 from utils.const import CHAINS
 
@@ -24,7 +25,7 @@ router = APIRouter()
 
 @router.get(
     "/{chain}/collateral_ratios",
-    response_model=HistoricalCollateralRatioResponse,
+    response_model=HistoricalTroveOverviewResponse,
     **get_router_method_settings(
         BaseMethodDescription(
             summary="Get historical collateral ratio of all markets"
@@ -43,7 +44,7 @@ async def get_all_ratios(chain: str, filter_set: FilterSet = Depends()):
 
 @router.get(
     "/{chain}/global_collateral_ratio",
-    response_model=HistoricalTroveManagerCR,
+    response_model=HistoricalTroveManagerData,
     **get_router_method_settings(
         BaseMethodDescription(summary="Get global collateral ratio")
     ),
@@ -90,3 +91,22 @@ async def get_cr_deciles_overview(chain: str):
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_health_overview(CHAINS[chain]))
+
+
+@router.get(
+    "/{chain}/collateral",
+    response_model=HistoricalTroveOverviewResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(summary="Get collateral amounts across vaults")
+    ),
+)
+async def get_collateral_overview(
+    chain: str, filter_set: FilterSet = Depends()
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (
+        get_historical_collateral_usd(CHAINS[chain], filter_set.period)
+    )

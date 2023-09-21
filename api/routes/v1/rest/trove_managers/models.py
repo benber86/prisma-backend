@@ -3,13 +3,13 @@ from pydantic import BaseModel
 from api.models.common import DecimalTimeSeries, Period
 
 
-class HistoricalTroveManagerCR(BaseModel):
-    trove: str
+class HistoricalTroveManagerData(BaseModel):
+    manager: str
     data: list[DecimalTimeSeries]
 
 
-class HistoricalCollateralRatioResponse(BaseModel):
-    troves: list[HistoricalTroveManagerCR]
+class HistoricalTroveOverviewResponse(BaseModel):
+    managers: list[HistoricalTroveManagerData]
 
 
 class FilterSet(BaseModel):
@@ -20,12 +20,12 @@ class FilterSet(BaseModel):
 
 
 class HistoricalOpenedTroves(BaseModel):
-    trove: str
+    manager: str
     data: list[DecimalTimeSeries]
 
 
 class HistoricalOpenedTrovesResponse(BaseModel):
-    troves: list[HistoricalOpenedTroves]
+    managers: list[HistoricalOpenedTroves]
 
 
 class CollateralRatioDecilesData(BaseModel):
