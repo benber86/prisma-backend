@@ -1,9 +1,14 @@
+import aiocache
+import pandas as pd
+from aiocache import Cache, cached
 from sqlalchemy import distinct, func, select
 
 from api.models.common import DecimalTimeSeries, Period
 from api.routes.utils.time import SECONDS_IN_DAY, apply_period
 from api.routes.v1.rest.trove_managers.models import (
     HistoricalCollateralRatioResponse,
+    HistoricalOpenedTroves,
+    HistoricalOpenedTrovesResponse,
     HistoricalTroveManagerCR,
 )
 from database.engine import db
@@ -12,6 +17,8 @@ from database.models.troves import (
     TroveManager,
     TroveManagerSnapshot,
 )
+
+cache = Cache(Cache.MEMORY)
 
 
 async def get_historical_collateral_ratios(
@@ -138,3 +145,59 @@ async def get_global_collateral_ratio(
     ]
 
     return HistoricalTroveManagerCR(trove="global", data=data_points)
+
+
+@cached(ttl=300, cache=cache)
+async def get_open_troves_overview(
+    chain_id: int, period: Period
+) -> HistoricalOpenedTrovesResponse:
+    start_timestamp = apply_period(period)
+    rounded_timestamp = (
+        func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
+        * SECONDS_IN_DAY
+    )
+
+    query = (
+        select(
+            Collateral.name,
+            rounded_timestamp.label("rounded_date"),
+            func.max(TroveManagerSnapshot.open_troves).label(
+                "max_open_troves"
+            ),
+        )
+        .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
+        .join(
+            Collateral, Collateral.manager_id == TroveManager.id
+        )  # Corrected join here
+        .filter(
+            (TroveManager.chain_id == chain_id)
+            & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
+        )
+        .group_by(Collateral.name, rounded_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+
+    results_dict = [dict(row) for row in results]
+
+    df = pd.DataFrame(results_dict)
+    df_pivot = df.pivot(
+        index="rounded_date", columns="name", values="max_open_troves"
+    )
+    df_pivot.ffill(inplace=True)
+
+    data_dict = df_pivot.to_dict(orient="dict")
+
+    trove_data_list = [
+        HistoricalOpenedTroves(
+            trove=trove_name,
+            data=[
+                DecimalTimeSeries(timestamp=date, value=value)
+                for date, value in trove_data.items()
+                if value != 0
+            ],
+        )
+        for trove_name, trove_data in data_dict.items()
+    ]
+
+    return HistoricalOpenedTrovesResponse(troves=trove_data_list)

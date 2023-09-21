@@ -36,6 +36,8 @@ types-redis = "*"
 types-requests = "*"
 pandas-stubs = "*"
 aioredis = "*"
+pandas = "*"
+aiocache = "*"
 
 [dev-packages]
 black = ">=22.12.0"

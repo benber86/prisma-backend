@@ -17,3 +17,12 @@ class FilterSet(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class HistoricalOpenedTroves(BaseModel):
+    trove: str
+    data: list[DecimalTimeSeries]
+
+
+class HistoricalOpenedTrovesResponse(BaseModel):
+    troves: list[HistoricalOpenedTroves]

@@ -1,4 +1,5 @@
 -i https://pypi.org/simple
+aiocache==0.12.2
 aiogram==2.25.1
 aiohttp==3.8.5
 aioredis==2.0.1
@@ -22,7 +23,7 @@ click==8.1.7
 click-didyoumean==0.3.0; python_full_version >= '3.6.2' and python_full_version < '4.0.0'
 click-plugins==1.1.1
 click-repl==0.3.0; python_version >= '3.6'
-cryptography==41.0.3; python_version >= '3.7'
+cryptography==41.0.4; python_version >= '3.7'
 cytoolz==0.12.2; implementation_name == 'cpython'
 databases==0.8.0
 deprecated==1.2.14; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
@@ -49,7 +50,7 @@ identify==2.5.29; python_version >= '3.8'
 idna==3.4; python_version >= '3.5'
 iniconfig==2.0.0; python_version >= '3.7'
 isort==5.12.0; python_full_version >= '3.8.0'
-jsonschema==4.19.0; python_version >= '3.8'
+jsonschema==4.19.1; python_version >= '3.8'
 jsonschema-specifications==2023.7.1; python_version >= '3.8'
 kombu==5.3.2; python_version >= '3.8'
 lazy-object-proxy==1.9.0; python_version >= '3.7'
@@ -60,9 +61,10 @@ markupsafe==2.1.3; python_version >= '3.7'
 mccabe==0.7.0; python_version >= '3.6'
 multidict==6.0.4; python_version >= '3.7'
 nodeenv==1.8.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6'
-numpy==1.26.0; python_version >= '3.9'
+numpy==1.26.0; python_version < '3.11'
 orjson==3.9.7
 packaging==23.1; python_version >= '3.7'
+pandas==2.1.1
 pandas-stubs==2.0.3.230814
 parsimonious==0.9.0
 pip==23.2.1
@@ -80,6 +82,7 @@ pydantic==1.10.12
 pylint==2.17.5
 pytest==7.4.2
 pytest-asyncio==0.21.1
+python-dateutil==2.8.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
 python-dotenv==1.0.0
 pytz==2023.3.post1
 pyunormalize==15.0.0; python_version >= '3.6'
@@ -91,6 +94,7 @@ requests==2.31.0
 rlp==3.0.0
 rpds-py==0.10.3; python_version >= '3.8'
 setuptools==68.2.2
+six==1.16.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
 sniffio==1.3.0; python_version >= '3.7'
 sqlalchemy==1.4.49
 starlette==0.27.0; python_version >= '3.7'
@@ -99,12 +103,13 @@ tomlkit==0.12.1; python_version >= '3.7'
 toolz==0.12.0; python_version >= '3.5'
 tornado==6.3.3; python_version >= '3.8'
 types-pyopenssl==23.2.0.2
-types-pytz==2023.3.1.0
+types-pytz==2023.3.1.1
 types-redis==4.6.0.6
-types-requests==2.31.0.2
+types-requests==2.31.0.3
 types-urllib3==1.26.25.14
 typing-extensions==4.8.0; python_version >= '3.8'
-urllib3==2.0.4; python_version >= '3.7'
+tzdata==2023.3; python_version >= '2'
+urllib3==2.0.5; python_version >= '3.7'
 uvicorn==0.23.2
 vine==5.0.0; python_version >= '3.6'
 virtualenv==20.24.5; python_version >= '3.7'
