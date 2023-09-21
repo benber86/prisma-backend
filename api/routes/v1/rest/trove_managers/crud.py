@@ -76,6 +76,7 @@ async def get_historical_collateral_ratios(
     return HistoricalTroveOverviewResponse(managers=formatted_data)
 
 
+@cached(ttl=300, cache=Cache.MEMORY)
 async def get_global_collateral_ratio(
     chain_id: int, period: Period
 ) -> HistoricalTroveManagerData:
@@ -276,7 +277,7 @@ async def get_health_overview(
         df["collateral_ratio"], 10, retbins=True, labels=False
     )
     labels = [
-        f"[{round(bins[i] * 100, 2)}% - {round(bins[i + 1] * 100, 2)}%)"
+        f"[{round(bins[i] * 100)}% - {round(bins[i + 1] * 100)}%)"
         for i in range(10)
     ]
     df["decile"] = df["collateral_decile"].map(lambda x: labels[x])
