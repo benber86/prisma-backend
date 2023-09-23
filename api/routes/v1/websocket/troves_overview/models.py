@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-from api.models.common import Pagination
 from api.routes.v1.websocket.models import Payload
 
 

@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from api.routes.v1.websocket.troves_overview.models import TroveManagerDetails
 from database.engine import db
@@ -13,15 +13,6 @@ from database.models.troves import (
 async def get_trove_manager_details(
     chain_id: int,
 ) -> list[TroveManagerDetails]:
-
-    subquery = (
-        select(
-            TroveManagerSnapshot.manager_id,
-            func.max(TroveManagerSnapshot.block_timestamp).label(
-                "latest_timestamp"
-            ),
-        ).group_by(TroveManagerSnapshot.manager_id)
-    ).alias("latest_snapshots")
 
     query = (
         select(
@@ -45,18 +36,15 @@ async def get_trove_manager_details(
             TroveManagerSnapshot.manager_id == TroveManager.id,
         )
         .join(
-            subquery, subquery.c.manager_id == TroveManagerSnapshot.manager_id
-        )
-        .join(
             TroveManagerParameter,
             TroveManagerParameter.id == TroveManagerSnapshot.parameters_id,
         )
-        .where(
-            (TroveManager.chain_id == chain_id)
-            & (
-                TroveManagerSnapshot.block_timestamp
-                == subquery.c.latest_timestamp
-            )
+        .where(TroveManager.chain_id == chain_id)
+        .distinct(TroveManager.id)
+        .order_by(
+            TroveManager.id,
+            TroveManagerSnapshot.block_timestamp.desc(),
+            TroveManagerSnapshot.created_at.desc(),
         )
     )
 
