@@ -3,11 +3,13 @@ import pandas as pd
 from aiocache import Cache, cached
 from sqlalchemy import and_, desc, func, select
 
-from api.models.common import DecimalTimeSeries, Period
+from api.models.common import DecimalLabelledSeries, DecimalTimeSeries, Period
+from api.routes.utils.money import format_dollar_value
 from api.routes.utils.time import SECONDS_IN_DAY, apply_period
 from api.routes.v1.rest.trove_managers.models import (
     CollateralRatioDecilesData,
     CollateralRatioDistributionResponse,
+    DistributionResponse,
     HistoricalOpenedTroves,
     HistoricalOpenedTrovesResponse,
     HistoricalTroveManagerData,
@@ -338,3 +340,55 @@ async def get_historical_collateral_usd(
         )
 
     return HistoricalTroveOverviewResponse(managers=troves_data)
+
+
+def _get_trove_counts_by_range(
+    series: pd.Series,
+) -> list[DecimalLabelledSeries]:
+    Q1 = series.quantile(0.25)
+    Q3 = series.quantile(0.75)
+    IQR = Q3 - Q1
+
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    non_outliers = series[(series >= lower_bound) & (series <= upper_bound)]
+    bins = list(
+        np.linspace(non_outliers.min(), non_outliers.max(), 9).tolist()
+    )
+    bins.append(series.max())
+
+    counts, bins = np.histogram(series, bins=bins)
+
+    labels_dict: dict[str, int] = {}
+    for left, right, count in zip(bins[:-1], bins[1:], counts):
+        label = f"{format_dollar_value(left)} - {format_dollar_value(right)}"
+        labels_dict[label] = count
+
+    return [
+        DecimalLabelledSeries(label=k, value=v) for k, v in labels_dict.items()
+    ]
+
+
+async def get_collateral_histogram(manager_id: int) -> DistributionResponse:
+    query = (
+        select([Trove.collateral_usd])
+        .where(Trove.manager_id == manager_id)
+        .where(Trove.status == Trove.TroveStatus.open)
+    )
+    results = await db.fetch_all(query)
+    series = pd.Series([float(r[0]) for r in results])
+    distrib = _get_trove_counts_by_range(series)
+    return DistributionResponse(distribution=distrib)
+
+
+async def get_debt_histogram(manager_id: int) -> DistributionResponse:
+    query = (
+        select([Trove.debt])
+        .where(Trove.manager_id == manager_id)
+        .where(Trove.status == Trove.TroveStatus.open)
+    )
+    results = await db.fetch_all(query)
+    series = pd.Series([float(r[0]) for r in results])
+    distrib = _get_trove_counts_by_range(series)
+    return DistributionResponse(distribution=distrib)

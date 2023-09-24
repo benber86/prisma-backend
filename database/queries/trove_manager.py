@@ -14,3 +14,16 @@ async def get_manager_address_by_id_and_chain(
     if result:
         return result["address"]
     return None
+
+
+async def get_manager_id_by_address_and_chain(
+    chain_id: int, address: str
+) -> int | None:
+    query = select([TroveManager.id]).where(
+        (TroveManager.address.ilike(address))
+        & (TroveManager.chain_id == chain_id)
+    )
+    result = await db.fetch_one(query)
+    if result:
+        return result["id"]
+    return None

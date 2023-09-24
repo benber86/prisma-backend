@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.logger import get_logger
+from api.models.common import Denomination
 from api.routes.v1.rest.trove_managers.crud import (
+    get_collateral_histogram,
+    get_debt_histogram,
     get_global_collateral_ratio,
     get_health_overview,
     get_historical_collateral_ratios,
@@ -11,11 +14,14 @@ from api.routes.v1.rest.trove_managers.crud import (
 )
 from api.routes.v1.rest.trove_managers.models import (
     CollateralRatioDistributionResponse,
+    CollateralVsDebt,
+    DistributionResponse,
     FilterSet,
     HistoricalOpenedTrovesResponse,
     HistoricalTroveManagerData,
     HistoricalTroveOverviewResponse,
 )
+from database.queries.trove_manager import get_manager_id_by_address_and_chain
 from utils.const import CHAINS
 
 logger = get_logger(__name__)
@@ -110,3 +116,30 @@ async def get_collateral_overview(
     return await (
         get_historical_collateral_usd(CHAINS[chain], filter_set.period)
     )
+
+
+@router.get(
+    "/{chain}/{manager}/histograms",
+    response_model=DistributionResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Returns the distribution of troves across collateral value ranges"
+        )
+    ),
+)
+async def get_collateral_distribution(
+    chain: str, manager: str, denomination: CollateralVsDebt = Depends()
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    print(denomination.unit)
+    if denomination.unit == Denomination.collateral.value:
+        return await (get_collateral_histogram(manager_id))
+    else:
+        return await (get_debt_histogram(manager_id))

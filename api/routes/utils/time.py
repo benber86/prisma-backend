@@ -8,8 +8,12 @@ SECONDS_IN_DAY = 24 * 60 * 60
 def apply_period(period: Period) -> int:
     current_timestamp = datetime.now().timestamp()
 
-    if period == Period.month:
+    if period == Period.week:
+        start_timestamp = current_timestamp - 7 * SECONDS_IN_DAY
+    elif period == Period.month:
         start_timestamp = current_timestamp - 30 * SECONDS_IN_DAY
+    elif period == Period.trimester:
+        start_timestamp = current_timestamp - 3 * 30 * SECONDS_IN_DAY
     elif period == Period.semester:
         start_timestamp = current_timestamp - 6 * 30 * SECONDS_IN_DAY
     else:

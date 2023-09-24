@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 
-from api.models.common import DecimalTimeSeries, Period
+from api.models.common import (
+    DecimalLabelledSeries,
+    DecimalTimeSeries,
+    Denomination,
+    Period,
+)
 
 
 class HistoricalTroveManagerData(BaseModel):
@@ -35,3 +40,14 @@ class CollateralRatioDecilesData(BaseModel):
 
 class CollateralRatioDistributionResponse(BaseModel):
     deciles: list[CollateralRatioDecilesData]
+
+
+class DistributionResponse(BaseModel):
+    distribution: list[DecimalLabelledSeries]
+
+
+class CollateralVsDebt(BaseModel):
+    unit: Denomination = Denomination.collateral
+
+    class Config:
+        use_enum_values = True
