@@ -151,7 +151,7 @@ async def get_collateral_distribution(
     response_model=LargePositionsResponse,
     **get_router_method_settings(
         BaseMethodDescription(
-            summary="Returns the 10 largest positions vs rest of troves"
+            summary="Returns the 5 largest positions vs rest of troves"
         )
     ),
 )
@@ -166,4 +166,4 @@ async def get_top_positions(
     )
     if not manager_id:
         raise HTTPException(status_code=404, detail="Manager not found")
-    return await (get_large_positions(manager_id, 10, denomination))
+    return await (get_large_positions(manager_id, 5, denomination))
