@@ -3,19 +3,27 @@ import pandas as pd
 from aiocache import Cache, cached
 from sqlalchemy import and_, desc, func, select
 
-from api.models.common import DecimalLabelledSeries, DecimalTimeSeries, Period
+from api.models.common import (
+    DecimalLabelledSeries,
+    DecimalTimeSeries,
+    Denomination,
+    Period,
+)
 from api.routes.utils.money import format_dollar_value
 from api.routes.utils.time import SECONDS_IN_DAY, apply_period
 from api.routes.v1.rest.trove_managers.models import (
     CollateralRatioDecilesData,
     CollateralRatioDistributionResponse,
+    CollateralVsDebt,
     DistributionResponse,
     HistoricalOpenedTroves,
     HistoricalOpenedTrovesResponse,
     HistoricalTroveManagerData,
     HistoricalTroveOverviewResponse,
+    LargePositionsResponse,
 )
 from database.engine import db
+from database.models.common import User
 from database.models.troves import (
     Collateral,
     Trove,
@@ -392,3 +400,52 @@ async def get_debt_histogram(manager_id: int) -> DistributionResponse:
     series = pd.Series([float(r[0]) for r in results])
     distrib = _get_trove_counts_by_range(series)
     return DistributionResponse(distribution=distrib)
+
+
+async def get_large_positions(
+    manager_id: int, top_values: int, denomination: CollateralVsDebt
+) -> LargePositionsResponse:
+
+    if denomination.unit == Denomination.collateral.value:
+        column = Trove.collateral_usd
+    else:
+        column = Trove.debt
+
+    top_troves_query = (
+        select([User.id.label("label"), column.label("value")])
+        .join(Trove, User.id == Trove.owner_id)
+        .where(Trove.manager_id == manager_id)
+        .where(Trove.status == Trove.TroveStatus.open)
+        .order_by(desc(column))
+        .limit(top_values)
+    )
+    top_troves = await db.fetch_all(top_troves_query)
+
+    subquery = (
+        select([column])
+        .where(Trove.manager_id == manager_id)
+        .where(Trove.status == Trove.TroveStatus.open)
+        .order_by(desc(column))
+        .limit(top_values)
+        .alias()
+    )
+
+    remaining_troves_sum_query = (
+        select([func.sum(column)])
+        .where(Trove.manager_id == manager_id)
+        .where(Trove.status == Trove.TroveStatus.open)
+        .where(~column.in_(subquery))
+    )
+    remaining_troves_sum = await db.fetch_val(remaining_troves_sum_query)
+
+    results = [
+        DecimalLabelledSeries(value=trove["value"], label=trove["label"])
+        for trove in top_troves
+    ]
+
+    if remaining_troves_sum:
+        results.append(
+            DecimalLabelledSeries(value=remaining_troves_sum, label="Others")
+        )
+
+    return LargePositionsResponse(positions=results)

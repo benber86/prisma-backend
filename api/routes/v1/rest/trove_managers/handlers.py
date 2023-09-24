@@ -10,6 +10,7 @@ from api.routes.v1.rest.trove_managers.crud import (
     get_health_overview,
     get_historical_collateral_ratios,
     get_historical_collateral_usd,
+    get_large_positions,
     get_open_troves_overview,
 )
 from api.routes.v1.rest.trove_managers.models import (
@@ -20,6 +21,7 @@ from api.routes.v1.rest.trove_managers.models import (
     HistoricalOpenedTrovesResponse,
     HistoricalTroveManagerData,
     HistoricalTroveOverviewResponse,
+    LargePositionsResponse,
 )
 from database.queries.trove_manager import get_manager_id_by_address_and_chain
 from utils.const import CHAINS
@@ -138,8 +140,30 @@ async def get_collateral_distribution(
     )
     if not manager_id:
         raise HTTPException(status_code=404, detail="Manager not found")
-    print(denomination.unit)
     if denomination.unit == Denomination.collateral.value:
         return await (get_collateral_histogram(manager_id))
     else:
         return await (get_debt_histogram(manager_id))
+
+
+@router.get(
+    "/{chain}/{manager}/large_positions",
+    response_model=LargePositionsResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Returns the 10 largest positions vs rest of troves"
+        )
+    ),
+)
+async def get_top_positions(
+    chain: str, manager: str, denomination: CollateralVsDebt = Depends()
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    return await (get_large_positions(manager_id, 10, denomination))

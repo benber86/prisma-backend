@@ -51,3 +51,7 @@ class CollateralVsDebt(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class LargePositionsResponse(BaseModel):
+    positions: list[DecimalLabelledSeries]
