@@ -6,6 +6,7 @@ from api.routes.v1.websocket.models import Payload
 class TroveManagerDetails(BaseModel):
     name: str
     address: str
+    collateral: str
     tvl: float
     debt: float
     debt_cap: float
