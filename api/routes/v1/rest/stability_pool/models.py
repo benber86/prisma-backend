@@ -15,6 +15,7 @@ class PoolStableOperation(BaseModel):
     user: str
     amount: float
     timestamp: int
+    hash: str
 
 
 class PoolStableTopResponse(BaseModel):

@@ -71,6 +71,7 @@ async def get_main_stable_deposits_withdrawals(
             [
                 StabilityPoolOperation.stable_amount,
                 StabilityPoolOperation.block_timestamp,
+                StabilityPoolOperation.transaction_hash,
                 User.id.label("user_address"),
             ]
         )
@@ -93,6 +94,7 @@ async def get_main_stable_deposits_withdrawals(
             amount=result["stable_amount"],
             timestamp=result["block_timestamp"],
             user=Web3.to_checksum_address(result["user_address"]),
+            hash=result["transaction_hash"],
         )
         for result in results
     ]
