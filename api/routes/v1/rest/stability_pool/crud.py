@@ -152,6 +152,9 @@ async def get_stable_deposits_and_withdrawals(
 
     deposits = []
     withdrawals = []
+    deposit_timestamps = set()
+    withdrawal_timestamps = set()
+
     for result in results:
         time_series = DecimalTimeSeries(
             value=float(result["total_amount"]), timestamp=int(result["day"])
@@ -161,8 +164,23 @@ async def get_stable_deposits_and_withdrawals(
             == StabilityPoolOperation.StabilityPoolOperationType.stable_deposit
         ):
             deposits.append(time_series)
+            deposit_timestamps.add(time_series.timestamp)
         else:
             withdrawals.append(time_series)
+            withdrawal_timestamps.add(time_series.timestamp)
+
+    all_timestamps = deposit_timestamps.union(withdrawal_timestamps)
+
+    for timestamp in all_timestamps:
+        if timestamp not in deposit_timestamps:
+            deposits.append(DecimalTimeSeries(value=0.0, timestamp=timestamp))
+        if timestamp not in withdrawal_timestamps:
+            withdrawals.append(
+                DecimalTimeSeries(value=0.0, timestamp=timestamp)
+            )
+
+    deposits.sort(key=lambda x: x.timestamp)
+    withdrawals.sort(key=lambda x: x.timestamp)
 
     return PoolDepositsWithdrawalsHistorical(
         deposits=deposits, withdrawals=withdrawals
