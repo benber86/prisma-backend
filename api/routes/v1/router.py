@@ -1,6 +1,9 @@
 from api.fastapi import compile_routers
 from api.routes.v1.rest.chains.handlers import router as chains_router
 from api.routes.v1.rest.collateral.handlers import router as collateral_router
+from api.routes.v1.rest.stability_pool.handlers import (
+    router as stability_pool_router,
+)
 from api.routes.v1.rest.trove_managers.handlers import (
     router as trove_manager_router,
 )
@@ -17,6 +20,11 @@ http_routers = [
         "router": trove_manager_router,
         "tags": ["vaults"],
         "prefix": "/managers",
+    },
+    {
+        "router": stability_pool_router,
+        "tags": ["pool"],
+        "prefix": "/pool",
     },
 ]
 

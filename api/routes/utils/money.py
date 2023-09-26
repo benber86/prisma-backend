@@ -6,4 +6,4 @@ def format_dollar_value(value: float) -> str:
     elif value > 1e3:
         return f"${value/1e3:.1f}k"
     else:
-        return f"${value}"
+        return f"${value:.2f}"

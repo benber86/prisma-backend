@@ -3,6 +3,7 @@ from operator import and_
 
 import aiohttp
 from aiocache import Cache, cached
+from sqlalchemy import select
 
 from api.models.common import DecimalTimeSeries, Period
 from api.routes.utils.time import apply_period
@@ -36,7 +37,6 @@ async def get_oracle_prices(
     collateral_id: int, period: Period
 ) -> list[DecimalTimeSeries]:
     start_timestamp = apply_period(period)
-    from sqlalchemy import select
 
     query = (
         select([PriceRecord.price, PriceRecord.block_timestamp])

@@ -17,8 +17,8 @@ async def get_trove_manager_details(
     query = (
         select(
             Collateral.symbol.label("name"),
-            Collateral.address.label("collateral"),
             TroveManager.address.label("address"),
+            Collateral.address.label("collateral"),
             TroveManagerSnapshot.total_collateral_usd.label("tvl"),
             TroveManagerSnapshot.total_debt.label("debt"),
             TroveManagerParameter.max_system_debt.label("debt_cap"),
