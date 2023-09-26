@@ -64,14 +64,14 @@ async def get_withdrawals(chain: str, filter_set: FilterSet = Depends()):
     ),
 )
 async def get_stable_withdrawals(
-    chain: str, filter_set: FilterSet = Depends()
+    chain: str, top: int, filter_set: FilterSet = Depends()
 ):
     if chain not in CHAINS:
         raise HTTPException(status_code=404, detail="Chain not found")
     chain_id = CHAINS[chain]
     return PoolStableTopResponse(
         operations=await get_main_stable_deposits_withdrawals(
-            chain_id, filter_set.period, True
+            chain_id, top, filter_set.period, True
         )
     )
 
@@ -85,13 +85,15 @@ async def get_stable_withdrawals(
         )
     ),
 )
-async def get_stable_deposits(chain: str, filter_set: FilterSet = Depends()):
+async def get_stable_deposits(
+    chain: str, top: int, filter_set: FilterSet = Depends()
+):
     if chain not in CHAINS:
         raise HTTPException(status_code=404, detail="Chain not found")
     chain_id = CHAINS[chain]
     return PoolStableTopResponse(
         operations=await get_main_stable_deposits_withdrawals(
-            chain_id, filter_set.period, False
+            chain_id, top, filter_set.period, False
         )
     )
 

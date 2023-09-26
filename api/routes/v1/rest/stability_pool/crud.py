@@ -54,7 +54,7 @@ async def get_pool_amounts(
 
 @cached(ttl=300, cache=Cache.MEMORY)
 async def get_main_stable_deposits_withdrawals(
-    chain_id: int, period: Period, withdrawal: bool
+    chain_id: int, top: int, period: Period, withdrawal: bool
 ) -> list[PoolStableOperation]:
     start_timestamp = apply_period(period)
     if withdrawal:
@@ -84,7 +84,7 @@ async def get_main_stable_deposits_withdrawals(
             )
         )
         .order_by(desc(StabilityPoolOperation.stable_amount))
-        .limit(10)
+        .limit(min(top, 50))
     )
 
     results = await db.fetch_all(query)
