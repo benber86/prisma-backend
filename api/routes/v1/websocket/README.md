@@ -12,7 +12,8 @@
 ### troves_overview
 
 Sample snapshot query:
-```{
+```
+{
    "action":"snapshots",
    "channel":"troves_overview",
    "settings":[
@@ -25,7 +26,8 @@ Sample snapshot query:
 
 Sample subscription query:
 
-```{
+```
+{
    "action":"subscribe",
    "channel":"troves_overview",
    "settings":[
@@ -119,6 +121,69 @@ Sample response:
          "closed_troves":7,
          "liq_troves":0,
          "red_troves":0
+      }
+   ]
+}
+```
+
+
+### stability_pool
+
+
+Sample snapshot query:
+```
+{
+   "action":"snapshots",
+   "channel":"stability_pool",
+   "settings":[
+      {
+         "chain":"ethereum",
+         "pagination": {
+             "items": 2,
+             "page": 4
+          }
+      }
+   ]
+}
+```
+
+Sample subscription query:
+```
+{
+   "action":"subscribe",
+   "channel":"stability_pool",
+   "settings":[
+      {
+         "chain":"ethereum"
+      }
+   ]
+}
+```
+
+Sample response:
+```
+{
+   "channel":"troves_overview",
+   "subscription":{
+      "chain":"ethereum",
+      "pagination":{
+         "items":2,
+         "page":4
+      }
+   },
+   "type":"snapshot",
+   "payload":[
+      {
+         "user":"0xa53a13a80d72a855481de5211e7654fabdfe3526",
+         "operation":"stableDeposit",
+         "amount":175000.0,
+         "hash":"0xf91104d55af7a286d84b7f24302b1162f05cb059b43818f97076bd6dfde87dba"
+      },
+      {
+         "user":"0x4e331da3a462b70d165eb2055f6d5027944f6085",
+         "operation":"stableDeposit",
+         "amount":6442.673507386331,
+         "hash":"0x765fd4f0e0fa2bb3fa945ee0777bb0ebc6b0e93a6a6509edff3ecd926246cf7b"
       }
    ]
 }

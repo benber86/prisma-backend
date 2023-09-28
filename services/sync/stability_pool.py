@@ -1,5 +1,12 @@
 import logging
 
+from api.routes.v1.websocket.models import Channels, Payload
+from api.routes.v1.websocket.stability_pool.models import (
+    StabilityPoolOperationDetails,
+    StabilityPoolOperationType,
+    StabilityPoolPayload,
+    StabilityPoolSettings,
+)
 from database.engine import db
 from database.models.common import User
 from database.models.troves import (
@@ -11,6 +18,8 @@ from database.queries.collateral import get_collateral_id_by_chain_and_address
 from database.queries.stability_pool import get_stability_pool_id_by_chain_id
 from database.utils import upsert_query
 from services.celery import celery
+from services.messaging.handler import STABILITY_POOL_UPDATE
+from services.messaging.pubsub import publish_message
 from services.sync.utils import get_snapshot_query_setup
 from utils.const import CHAINS
 from utils.subgraph.query import async_grt_query
@@ -170,6 +179,7 @@ async def update_pool_operations(
                 )
 
             # finally insert collateral withdrawals
+            total_withdrawals: float = 0
             for withdrawal in operations_data["withdrawnCollateral"]:
                 col_address = withdrawal["collateral"]["id"]
                 collateral_id = await get_collateral_id_by_chain_and_address(
@@ -185,6 +195,28 @@ async def update_pool_operations(
                     "collateral_amount": withdrawal["collateralAmount"],
                     "collateral_amount_usd": withdrawal["collateralAmountUSD"],
                 }
+                total_withdrawals += float(withdrawal["collateralAmountUSD"])
 
                 query = upsert_query(CollateralWithdrawal, w_indexes, w_data)
                 await db.execute(query)
+
+            # push update to fastApi
+            operation = StabilityPoolOperationType(
+                operations_data["operation"]
+            )
+            payload = StabilityPoolOperationDetails(
+                user=operations_data["user"]["id"],
+                operation=operation,
+                amount=total_withdrawals
+                if operation
+                == StabilityPoolOperationType.COLLATERAL_WITHDRAWAL
+                else float(operations_data["stableAmount"]),
+                hash=operations_data["transactionHash"],
+            )
+            message = StabilityPoolPayload(
+                channel=f"{Channels.troves_overview.value}_{chain_id}",
+                subscription=StabilityPoolSettings(chain=chain),
+                type=Payload.update,
+                payload=[payload],
+            )
+            await publish_message(STABILITY_POOL_UPDATE, message.json())

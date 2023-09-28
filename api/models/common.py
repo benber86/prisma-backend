@@ -17,7 +17,7 @@ class Denomination(Enum):
 
 
 class Pagination(BaseModel):
-    pagination: int = 10
+    items: int = 10
     page: int = 1
 
 

@@ -9,6 +9,7 @@ class Action(Enum):
 
 class Channels(Enum):
     troves_overview = "troves_overview"
+    stability_pool = "stability_pool"
 
 
 class Interval(Enum):

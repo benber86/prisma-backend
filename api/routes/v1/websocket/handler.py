@@ -6,6 +6,10 @@ from pydantic import BaseModel, ValidationError, root_validator
 
 from api.routes.v1.websocket.manager import manager
 from api.routes.v1.websocket.models import Action, Channels
+from api.routes.v1.websocket.stability_pool.channels import (
+    parse_stability_pool_client_message,
+)
+from api.routes.v1.websocket.stability_pool.models import StabilityPoolSettings
 from api.routes.v1.websocket.troves_overview.channels import (
     parse_trove_overview_client_message,
 )
@@ -23,6 +27,9 @@ Handler = NamedTuple(
 CHANNEL_MAP: dict[Channels, Handler] = {
     Channels.troves_overview: Handler(
         parse_trove_overview_client_message, TroveOverviewSettings
+    ),
+    Channels.stability_pool: Handler(
+        parse_stability_pool_client_message, StabilityPoolSettings
     ),
 }
 
