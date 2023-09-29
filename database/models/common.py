@@ -1,4 +1,13 @@
-from sqlalchemy import BigInteger, Boolean, Column, Integer, Numeric, String
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+)
 from sqlalchemy.orm import relationship
 
 from database.base import Base
@@ -21,4 +30,21 @@ class User(Base):
     frozen = Column(Boolean)
     stabilityPoolOperations = relationship(
         "StabilityPoolOperation", back_populates="user"
+    )
+
+
+class StableCoinPrice(Base):
+    __tablename__ = "mkusd_price"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    price = Column(Numeric)
+    timestamp = Column(Integer)
+    chain = relationship("Chain")
+
+    __table_args__ = (
+        Index(
+            "idx_collaterals__chain_id__timestamp",
+            chain_id,
+            timestamp,
+            unique=True,
+        ),
     )

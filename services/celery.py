@@ -10,7 +10,7 @@ celery = Celery(
     broker=os.getenv("CELERY_BROKER_URL"),
 )
 celery.conf.update(
-    imports="services.sync.back_populate",
+    imports=["services.sync.back_populate", "services.prices.populate_mkusd"],
     timezone="UTC",
     task_serializer="json",
     accept_content=["json"],
