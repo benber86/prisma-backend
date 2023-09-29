@@ -29,3 +29,8 @@ class DecimalTimeSeries(BaseModel):
 class DecimalLabelledSeries(BaseModel):
     value: float
     label: str
+
+
+class IntegerLabelledSeries(BaseModel):
+    value: int
+    label: str

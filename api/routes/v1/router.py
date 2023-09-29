@@ -1,6 +1,7 @@
 from api.fastapi import compile_routers
 from api.routes.v1.rest.chains.handlers import router as chains_router
 from api.routes.v1.rest.collateral.handlers import router as collateral_router
+from api.routes.v1.rest.mkusd.handlers import router as stablecoin_router
 from api.routes.v1.rest.stability_pool.handlers import (
     router as stability_pool_router,
 )
@@ -25,6 +26,11 @@ http_routers = [
         "router": stability_pool_router,
         "tags": ["pool"],
         "prefix": "/pool",
+    },
+    {
+        "router": stablecoin_router,
+        "tags": ["mkusd"],
+        "prefix": "/mkusd",
     },
 ]
 
