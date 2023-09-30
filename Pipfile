@@ -38,6 +38,7 @@ pandas-stubs = "*"
 aioredis = "*"
 pandas = "*"
 aiocache = "*"
+gmpy2 = "*"
 
 [dev-packages]
 black = ">=22.12.0"
