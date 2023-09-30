@@ -27,4 +27,13 @@ PRICE_SYNC_SCHEDULE = {
     for chain, chain_id in CHAINS.items()
 }
 
+HOLDERS_SCHEDULE = {
+    f"update-holders-{chain}": {
+        "task": "services.prices.mkusd_holders.get_holder_data",
+        "schedule": timedelta(hours=12),
+        "args": (chain,),
+    }
+    for chain, _ in CHAINS.items()
+}
+
 CELERY_BEAT_SCHEDULE = {**SUBGRAPH_SYNC_SCHEDULE, **PRICE_SYNC_SCHEDULE}

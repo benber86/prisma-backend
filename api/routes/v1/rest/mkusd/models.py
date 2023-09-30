@@ -1,6 +1,10 @@
 from pydantic import BaseModel
 
-from api.models.common import DecimalTimeSeries, IntegerLabelledSeries
+from api.models.common import (
+    DecimalLabelledSeries,
+    DecimalTimeSeries,
+    IntegerLabelledSeries,
+)
 
 
 class PriceResponse(BaseModel):
@@ -9,3 +13,7 @@ class PriceResponse(BaseModel):
 
 class PriceHistogramResponse(BaseModel):
     histogram: list[IntegerLabelledSeries]
+
+
+class HoldersResponse(BaseModel):
+    holders: list[DecimalLabelledSeries]

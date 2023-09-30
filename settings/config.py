@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     PG_DATABASE: str
 
     ETHERSCAN_TOKEN: str | None
+    FLIPSIDE_API_KEY: str | None
     REDIS_PASSWORD: str
 
     CELERY_BROKER_URL: str | None
