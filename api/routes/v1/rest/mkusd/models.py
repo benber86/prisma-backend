@@ -5,6 +5,7 @@ from api.models.common import (
     DecimalTimeSeries,
     IntegerLabelledSeries,
 )
+from services.prices.liquidity_depth import PoolDepth
 
 
 class PriceResponse(BaseModel):
@@ -17,3 +18,7 @@ class PriceHistogramResponse(BaseModel):
 
 class HoldersResponse(BaseModel):
     holders: list[DecimalLabelledSeries]
+
+
+class DepthResponse(BaseModel):
+    depth: list[PoolDepth]

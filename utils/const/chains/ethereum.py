@@ -1,3 +1,7 @@
+from web3 import Web3
+
+from settings.config import settings
+
 CHAIN_NAME = "ethereum"
 CHAIN_ID = 1
 SUBGRAPH = "https://api.thegraph.com/subgraphs/name/benber86/prisma"
@@ -10,3 +14,10 @@ LABELS = {
     "0xE0598D793bAf7b4f49F4a003885E4180B28caB61": "Gas Pool",
     "0xc89570207c5BA1B0E3cD372172cCaEFB173DB270": "Curve ETH/mkUSD Pool",
 }
+CURVE_SUBGRAPH = (
+    "https://api.thegraph.com/subgraphs/name/convex-community/volume-mainnet"
+)
+PROVIDER = Web3.HTTPProvider(
+    f"https://eth-mainnet.g.alchemy.com/v2/{settings.ALCHEMY_API_KEY}",
+    request_kwargs={"timeout": settings.WEB3_REQUEST_TIMEOUT},
+)

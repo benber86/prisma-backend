@@ -9,12 +9,14 @@ from api.routes.v1.rest.mkusd.crud import (
     get_price_history,
 )
 from api.routes.v1.rest.mkusd.models import (
+    DepthResponse,
     HoldersResponse,
     PriceHistogramResponse,
     PriceResponse,
 )
 from api.routes.v1.rest.trove_managers.models import FilterSet
 from services.messaging.redis import get_redis_client
+from services.prices.liquidity_depth import DEPTH_SLUG, PoolDepth
 from services.prices.mkusd_holders import HOLDERS_SLUG
 from utils.const import CHAINS
 
@@ -74,3 +76,21 @@ async def get_mkusd_top_holders(chain: str):
     redis = await get_redis_client("fastapi")
     data = json.loads(await redis.get(f"{HOLDERS_SLUG}_{chain}"))
     return HoldersResponse(holders=[DecimalLabelledSeries(**d) for d in data])
+
+
+@router.get(
+    "/{chain}/depth",
+    response_model=DepthResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get liquidity depth on available Curve stable pools"
+        )
+    ),
+)
+async def get_mkusd_depth(chain: str):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    redis = await get_redis_client("fastapi")
+    data = json.loads(await redis.get(f"{DEPTH_SLUG}_{chain}"))
+
+    return DepthResponse(depth=[PoolDepth(**d) for d in data])

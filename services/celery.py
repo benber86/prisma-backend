@@ -16,6 +16,7 @@ celery.conf.update(
         "services.sync.back_populate",
         "services.prices.populate_mkusd",
         "services.prices.mkusd_holders",
+        "services.prices.liquidity_depth",
     ],
     timezone="UTC",
     task_serializer="json",
@@ -28,7 +29,9 @@ celery.conf.update(
 @worker_ready.connect
 def run_task_on_startup(sender, **kwargs):
     print("Worker is ready, executing startup tasks...")
+    from services.prices.liquidity_depth import get_depth_data
     from services.prices.mkusd_holders import get_holder_data
 
     for chain in CHAINS.keys():
         get_holder_data.apply_async(args=(chain,))
+        get_depth_data.apply_async(args=(chain,))

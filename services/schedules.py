@@ -36,4 +36,18 @@ HOLDERS_SCHEDULE = {
     for chain, _ in CHAINS.items()
 }
 
-CELERY_BEAT_SCHEDULE = {**SUBGRAPH_SYNC_SCHEDULE, **PRICE_SYNC_SCHEDULE}
+DEPTH_SCHEDULE = {
+    f"update-holders-{chain}": {
+        "task": "services.prices.liquidity_depth.get_depth_data",
+        "schedule": timedelta(minutes=10),
+        "args": (chain,),
+    }
+    for chain, _ in CHAINS.items()
+}
+
+CELERY_BEAT_SCHEDULE = {
+    **SUBGRAPH_SYNC_SCHEDULE,
+    **PRICE_SYNC_SCHEDULE,
+    **DEPTH_SCHEDULE,
+    **HOLDERS_SCHEDULE,
+}
