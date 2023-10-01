@@ -22,3 +22,14 @@ class HoldersResponse(BaseModel):
 
 class DepthResponse(BaseModel):
     depth: list[PoolDepth]
+
+
+class StableInfo(BaseModel):
+    price: float
+    supply: float
+    volume: float
+    depth: float
+
+
+class StableInfoReponse(BaseModel):
+    info: StableInfo

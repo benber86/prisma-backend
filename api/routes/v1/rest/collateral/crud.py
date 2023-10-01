@@ -20,7 +20,6 @@ async def get_market_prices(
     start_timestamp = apply_period(period)
     span = int((current_timestamp - start_timestamp) // (4 * 3600))
     url = f"https://coins.llama.fi/chart/{chain}:{collat}?start={start_timestamp}&span={span}&period=4h"
-    print(url)
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             response.raise_for_status()

@@ -1,18 +1,25 @@
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from web3 import Web3
 
 from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.models.common import DecimalLabelledSeries
 from api.routes.v1.rest.mkusd.crud import (
+    get_circulating_supply,
+    get_price,
     get_price_histogram,
     get_price_history,
+    get_two_percent,
+    get_volume,
 )
 from api.routes.v1.rest.mkusd.models import (
     DepthResponse,
     HoldersResponse,
     PriceHistogramResponse,
     PriceResponse,
+    StableInfo,
+    StableInfoReponse,
 )
 from api.routes.v1.rest.trove_managers.models import FilterSet
 from services.messaging.redis import get_redis_client
@@ -87,10 +94,35 @@ async def get_mkusd_top_holders(chain: str):
         )
     ),
 )
-async def get_mkusd_depth(chain: str):
+async def get_mkusd_info(chain: str):
     if chain not in CHAINS:
         raise HTTPException(status_code=404, detail="Chain not found")
     redis = await get_redis_client("fastapi")
     data = json.loads(await redis.get(f"{DEPTH_SLUG}_{chain}"))
 
     return DepthResponse(depth=[PoolDepth(**d) for d in data])
+
+
+@router.get(
+    "/{chain}/general",
+    response_model=StableInfoReponse,
+    **get_router_method_settings(
+        BaseMethodDescription(summary="Get general stats on mkUSD")
+    ),
+)
+async def get_mkusd_depth(chain: str):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    redis = await get_redis_client("fastapi")
+    data = json.loads(await redis.get(f"{DEPTH_SLUG}_{chain}"))
+    depths = [PoolDepth(**d) for d in data]
+    total_depth = await get_two_percent(depths)
+    supply = await get_circulating_supply(chain)
+    pools = list(set([Web3.to_checksum_address(p.address) for p in depths]))
+
+    price = await get_price(chain)
+    volume = await get_volume(chain, pools)
+    res = StableInfo(
+        price=price, volume=volume, supply=supply, depth=total_depth
+    )
+    return StableInfoReponse(info=res)
