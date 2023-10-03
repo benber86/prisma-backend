@@ -22,7 +22,7 @@ class LlammaPriceSeries(BaseModel):
 
 
 def _get_price_info_from_defi_llamma(chain: str) -> list[LlammaPriceSeries]:
-    current_timestamp = datetime.now().timestamp()
+    current_timestamp = datetime.utcnow().timestamp()
     address = STABLECOINS[chain]
     dl_endpoint = f"https://coins.llama.fi/chart/{chain}:{address}?end={current_timestamp}&span=1000&period=1h"
     r = requests.get(dl_endpoint)

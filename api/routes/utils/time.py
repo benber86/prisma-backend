@@ -6,7 +6,7 @@ SECONDS_IN_DAY = 24 * 60 * 60
 
 
 def apply_period(period: Period) -> int:
-    current_timestamp = datetime.now().timestamp()
+    current_timestamp = datetime.utcnow().timestamp()
 
     if period == Period.week.value:
         start_timestamp = current_timestamp - 7 * SECONDS_IN_DAY

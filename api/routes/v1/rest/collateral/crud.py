@@ -16,7 +16,7 @@ async def get_market_prices(
     chain: str, collateral: str, period: Period
 ) -> list[DecimalTimeSeries]:
     collat = collateral.lower()
-    current_timestamp = datetime.now().timestamp()
+    current_timestamp = datetime.utcnow().timestamp()
     start_timestamp = apply_period(period)
     span = int((current_timestamp - start_timestamp) // (4 * 3600))
     url = f"https://coins.llama.fi/chart/{chain}:{collat}?start={start_timestamp}&span={span}&period=4h"

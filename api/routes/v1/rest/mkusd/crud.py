@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import aiohttp
@@ -12,6 +13,8 @@ from database.models.common import StableCoinPrice
 from services.prices.liquidity_depth import PoolDepth, PoolSales
 from utils.const import PROVIDERS, STABLECOINS
 from utils.const.abis import MKUSD_ABI
+
+logger = logging.getLogger()
 
 
 @cached(ttl=300, cache=Cache.MEMORY)
@@ -107,41 +110,59 @@ def _find_threshold(asks: PoolSales):
 async def get_two_percent(data: list[PoolDepth]) -> float:
     total = 0
     for i, pool in enumerate(data):
-        if (i > 0) and (data[i - 1].name == pool.name):
-            continue
-        total += _find_threshold(pool.ask)
+        try:
+            if (i > 0) and (data[i - 1].name == pool.name):
+                continue
+            total += _find_threshold(pool.ask)
+        except Exception as e:
+            logger.error(
+                f"Error calculating liquidity depth for pool {pool}: {e}"
+            )
     return total
 
 
 @cached(ttl=300, cache=Cache.MEMORY)
 async def get_circulating_supply(chain: str) -> float:
-    w3 = PROVIDERS[chain]
-    contract = Web3(w3).eth.contract(
-        Web3.to_checksum_address(STABLECOINS[chain]), abi=MKUSD_ABI
-    )
-    return contract.functions.circulatingSupply().call() * 1e-18
+    try:
+        w3 = PROVIDERS[chain]
+        contract = Web3(w3).eth.contract(
+            Web3.to_checksum_address(STABLECOINS[chain]), abi=MKUSD_ABI
+        )
+        return contract.functions.circulatingSupply().call() * 1e-18
+    except Exception as e:
+        logger.error(f"Error fetching circulating supply : {e}")
+        return 0
 
 
 @cached(ttl=300, cache=Cache.MEMORY)
 async def get_price(chain: str) -> float:
     url = f"https://prices.curve.fi/v1/usd_price/{chain}/{STABLECOINS[chain]}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            response.raise_for_status()
-            data = await response.json()
-    return data["data"]["usd_price"]
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                response.raise_for_status()
+                data = await response.json()
+        return data["data"]["usd_price"]
+    except Exception as e:
+        logging.error(f"Error fetching price from {url}: {e}")
+        return 0
 
 
 @cached(ttl=300, cache=Cache.MEMORY)
 async def get_volume(chain: str, pools: list[str]) -> float:
     total = 0
-    current_timestamp = int(datetime.now().timestamp())
+    current_timestamp = int(datetime.utcnow().timestamp())
     start_timestamp = current_timestamp - SECONDS_IN_DAY
     for pool in pools:
-        url = f"https://prices.curve.fi/v1/volume/usd/{chain}/{pool}?interval=day&start={start_timestamp}&end={current_timestamp}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
-                data = await response.json()
-        total += data["data"][0]["volume"]
+        try:
+            url = f"https://prices.curve.fi/v1/volume/usd/{chain}/{pool}?interval=day&start={start_timestamp}&end={current_timestamp}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+            total += data["data"][0]["volume"]
+        except Exception as e:
+            logging.error(
+                f"Error getting volume for pool {pool}: {e} - url {url}"
+            )
     return total
