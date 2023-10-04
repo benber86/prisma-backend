@@ -45,9 +45,19 @@ DEPTH_SCHEDULE = {
     for chain, _ in CHAINS.items()
 }
 
+IMPACT_SCHEDULE = {
+    f"update-impact-{chain}": {
+        "task": "services.prices.collateral.get_impact_data",
+        "schedule": timedelta(minutes=15),
+        "args": (chain,),
+    }
+    for chain, _ in CHAINS.items()
+}
+
 CELERY_BEAT_SCHEDULE = {
     **SUBGRAPH_SYNC_SCHEDULE,
     **PRICE_SYNC_SCHEDULE,
     **DEPTH_SCHEDULE,
     **HOLDERS_SCHEDULE,
+    **IMPACT_SCHEDULE,
 }

@@ -6,3 +6,12 @@ from api.models.common import DecimalTimeSeries
 class CollateralPrices(BaseModel):
     market: list[DecimalTimeSeries]
     oracle: list[DecimalTimeSeries]
+
+
+class CollateralPriceImpact(BaseModel):
+    amount: float
+    impact: float
+
+
+class CollateralPriceImpactResponse(BaseModel):
+    impact: list[CollateralPriceImpact]
