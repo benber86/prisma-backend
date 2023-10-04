@@ -54,3 +54,16 @@ async def get_oracle_prices(
         )
         for result in results
     ]
+
+
+@cached(ttl=3600, cache=Cache.MEMORY)
+async def get_gecko_supply(chain: str, token: str) -> float:
+    url = f"https://api.coingecko.com/api/v3/coins/{chain}/contract/{token}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                return float(data["market_data"]["total_supply"])
+    except Exception as e:
+        print(e)
+        return 0

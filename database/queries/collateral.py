@@ -8,12 +8,25 @@ async def get_collateral_id_by_chain_and_address(
     chain_id: int, address: str
 ) -> int | None:
     query = select([Collateral.id]).where(
-        (Collateral.chain_id == chain_id) & (Collateral.address == address)
+        (Collateral.chain_id == chain_id) & (Collateral.address.ilike(address))
     )
     result = await db.fetch_one(query)
 
     if result:
         return result["id"]
+    return None
+
+
+async def get_collateral_latest_price_by_chain_and_address(
+    chain_id: int, address: str
+) -> float | None:
+    query = select([Collateral.latest_price]).where(
+        (Collateral.chain_id == chain_id) & (Collateral.address.ilike(address))
+    )
+    result = await db.fetch_one(query)
+
+    if result:
+        return float(result["latest_price"])
     return None
 
 

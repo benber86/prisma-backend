@@ -15,3 +15,14 @@ class CollateralPriceImpact(BaseModel):
 
 class CollateralPriceImpactResponse(BaseModel):
     impact: list[CollateralPriceImpact]
+
+
+class CollateralGeneralInfo(BaseModel):
+    price: float
+    supply: float
+    tvl: float
+    risk: str
+
+
+class CollateralGeneralInfoReponse(BaseModel):
+    info: CollateralGeneralInfo
