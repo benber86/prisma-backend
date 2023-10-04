@@ -5,6 +5,7 @@ from api.routes.v1.rest.mkusd.handlers import router as stablecoin_router
 from api.routes.v1.rest.stability_pool.handlers import (
     router as stability_pool_router,
 )
+from api.routes.v1.rest.trove.handlers import router as trove_router
 from api.routes.v1.rest.trove_managers.handlers import (
     router as trove_manager_router,
 )
@@ -31,6 +32,11 @@ http_routers = [
         "router": stablecoin_router,
         "tags": ["mkusd"],
         "prefix": "/mkusd",
+    },
+    {
+        "router": trove_router,
+        "tags": ["trove"],
+        "prefix": "/trove",
     },
 ]
 
