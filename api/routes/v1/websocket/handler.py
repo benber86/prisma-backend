@@ -10,6 +10,12 @@ from api.routes.v1.websocket.stability_pool.channels import (
     parse_stability_pool_client_message,
 )
 from api.routes.v1.websocket.stability_pool.models import StabilityPoolSettings
+from api.routes.v1.websocket.trove_operations.channels import (
+    parse_trove_operation_client_message,
+)
+from api.routes.v1.websocket.trove_operations.models import (
+    TroveOperationsSettings,
+)
 from api.routes.v1.websocket.troves_overview.channels import (
     parse_trove_overview_client_message,
 )
@@ -30,6 +36,9 @@ CHANNEL_MAP: dict[Channels, Handler] = {
     ),
     Channels.stability_pool: Handler(
         parse_stability_pool_client_message, StabilityPoolSettings
+    ),
+    Channels.trove_operations: Handler(
+        parse_trove_operation_client_message, TroveOperationsSettings
     ),
 }
 

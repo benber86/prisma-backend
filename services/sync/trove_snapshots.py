@@ -1,17 +1,26 @@
 import logging
 
+from web3 import Web3
+
+from api.routes.v1.websocket.models import Channels, Payload
+from api.routes.v1.websocket.trove_operations.models import (
+    TroveOperation,
+    TroveOperationsPayload,
+    TroveOperationsSettings,
+)
 from database.engine import db
 from database.models.common import User
 from database.models.troves import (
     Liquidation,
     Redemption,
     Trove,
-    TroveManagerSnapshot,
     TroveSnapshot,
 )
 from database.queries.trove_manager import get_manager_address_by_id_and_chain
 from database.utils import insert_ignore_query, upsert_query
 from services.celery import celery
+from services.messaging.handler import TROVE_OPERATIONS_UPDATE
+from services.messaging.pubsub import publish_message
 from services.sync.utils import get_snapshot_query_setup
 from utils.const import CHAINS
 from utils.subgraph.query import async_grt_query
@@ -257,3 +266,24 @@ async def update_trove_snapshots(
             }
             query = upsert_query(TroveSnapshot, indexes, data)
             await db.execute(query)
+            # push to fastApi
+            settings = TroveOperationsSettings(
+                chain=chain, manager=manager_address.lower(), pagination=None
+            )
+            ops = TroveOperation(
+                owner=Web3.to_checksum_address(
+                    snapshot["trove"]["owner"]["id"]
+                ),
+                operation=snapshot["operation"],
+                collateral_usd=snapshot["collateralUSD"],
+                debt=snapshot["debt"],
+                timestamp=snapshot["blockTimestamp"],
+                hash=snapshot["transactionHash"],
+            )
+            payload = TroveOperationsPayload(
+                channel=Channels.trove_operations.value,
+                subscription=settings,
+                type=Payload.update,
+                payload=[ops],
+            )
+            await publish_message(TROVE_OPERATIONS_UPDATE, payload.json())

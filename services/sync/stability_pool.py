@@ -214,7 +214,7 @@ async def update_pool_operations(
                 hash=operations_data["transactionHash"],
             )
             message = StabilityPoolPayload(
-                channel=f"{Channels.troves_overview.value}_{chain_id}",
+                channel=Channels.troves_overview.value,
                 subscription=StabilityPoolSettings(chain=chain),
                 type=Payload.update,
                 payload=[payload],

@@ -188,3 +188,61 @@ Sample response:
    ]
 }
 ```
+
+### trove_operations
+
+
+Sample snapshot query:
+```
+{
+   "action":"snapshots",
+   "channel":"trove_operations",
+   "settings":[
+      {
+         "chain":"ethereum",
+         "manager": "0xbf6883a03fd2fcfa1b9fc588ad6193b3c3178f8f",
+         "pagination": {
+             "items": 2,
+             "page": 1
+          }
+      }
+   ]
+}
+```
+
+Sample subscription query:
+```
+{
+   "action":"subscribe",
+   "channel":"trove_operations",
+   "settings":[
+      {
+         "chain":"ethereum",
+         "manager": "0xbf6883a03fd2fcfa1b9fc588ad6193b3c3178f8f"
+      }
+   ]
+}
+```
+
+Sample response:
+```
+{
+   "channel":"trove",
+   "subscription":{
+      "chain":"ethereum",
+      "manager":"0xbf6883a03fd2fcfa1b9fc588ad6193b3c3178f8f",
+      "pagination":null
+   },
+   "type":"update",
+   "payload":[
+      {
+         "owner":"0x006B0646C7536D902D614952C679E2976d59943D",
+         "operation":"adjustTrove",
+         "collateral_usd":27081.6894351333,
+         "debt":16511.208585214954,
+         "timestamp":1696503515,
+         "hash":"0x49496e94c0fe5ace9a65195099ceddb066a8be516042be16935a0a708359e2e7"
+      }
+   ]
+}
+```

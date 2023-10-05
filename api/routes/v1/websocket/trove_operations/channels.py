@@ -4,20 +4,21 @@ from fastapi import WebSocket
 
 from api.routes.v1.websocket.manager import manager
 from api.routes.v1.websocket.models import Action, Channels, Payload
-from api.routes.v1.websocket.stability_pool.crud import get_pool_operations
-from api.routes.v1.websocket.stability_pool.models import (
-    StabilityPoolPayload,
-    StabilityPoolSettings,
+from api.routes.v1.websocket.trove_operations.crud import get_trove_operations
+from api.routes.v1.websocket.trove_operations.models import (
+    TroveOperationsPayload,
+    TroveOperationsSettings,
 )
+from database.queries.trove_manager import get_manager_id_by_address_and_chain
 from utils.const import CHAINS
 
 logger = logging.getLogger()
 
 
-async def parse_stability_pool_client_message(
+async def parse_trove_operation_client_message(
     websocket: WebSocket,
     action: Action,
-    channel_settings: list[StabilityPoolSettings],
+    channel_settings: list[TroveOperationsSettings],
 ):
     for settings in channel_settings:
         if settings.chain not in CHAINS:
@@ -26,8 +27,18 @@ async def parse_stability_pool_client_message(
             )
             continue
         chain_id = CHAINS[settings.chain]
-        channel = Channels.troves_overview.value
-        channel_sub = f"{channel}_{settings.chain}"
+        trove_manager = settings.manager.lower()
+        manager_id = await get_manager_id_by_address_and_chain(
+            chain_id=chain_id, address=trove_manager
+        )
+        if not manager_id:
+            await manager.send_message(
+                websocket, f"Manager {settings.manager} not found"
+            )
+            continue
+
+        channel = Channels.trove_operations.value
+        channel_sub = f"{channel}_{settings.chain}_{trove_manager}"
         if action == Action.subscribe:
             manager.subscribe(websocket, channel_sub, settings)
         elif action == Action.snapshots:
@@ -37,8 +48,8 @@ async def parse_stability_pool_client_message(
                 if settings.pagination
                 else 10
             )
-            operations = await get_pool_operations(chain_id, page, items)
-            data = StabilityPoolPayload(
+            operations = await get_trove_operations(manager_id, page, items)
+            data = TroveOperationsPayload(
                 channel=channel,
                 subscription=settings,
                 type=Payload.snapshot,

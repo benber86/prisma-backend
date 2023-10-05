@@ -7,5 +7,5 @@ logger = logging.getLogger()
 
 
 async def stability_pool_callback(data: StabilityPoolPayload):
-    channel_sub = data.channel
+    channel_sub = f"{data.channel}_{data.subscription.chain}"
     await manager.broadcast(data.json(), channel_sub)

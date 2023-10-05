@@ -5,6 +5,12 @@ from api.routes.v1.websocket.stability_pool.callback import (
     stability_pool_callback,
 )
 from api.routes.v1.websocket.stability_pool.models import StabilityPoolPayload
+from api.routes.v1.websocket.trove_operations.callback import (
+    trove_operations_callback,
+)
+from api.routes.v1.websocket.trove_operations.models import (
+    TroveOperationsPayload,
+)
 from api.routes.v1.websocket.troves_overview.callback import (
     trove_overview_callback,
 )
@@ -14,7 +20,12 @@ from api.routes.v1.websocket.troves_overview.models import (
 
 TROVE_OVERVIEW_UPDATE = "trove_overview_update"
 STABILITY_POOL_UPDATE = "stability_pool_update"
-REDIS_MESSAGING_CHANNELS = [TROVE_OVERVIEW_UPDATE, STABILITY_POOL_UPDATE]
+TROVE_OPERATIONS_UPDATE = "trove_operations_update"
+REDIS_MESSAGING_CHANNELS = [
+    TROVE_OVERVIEW_UPDATE,
+    STABILITY_POOL_UPDATE,
+    TROVE_OPERATIONS_UPDATE,
+]
 
 CALLBACK_MAPPING = {
     TROVE_OVERVIEW_UPDATE: Handler(
@@ -22,6 +33,9 @@ CALLBACK_MAPPING = {
     ),
     STABILITY_POOL_UPDATE: Handler(
         stability_pool_callback, StabilityPoolPayload
+    ),
+    TROVE_OPERATIONS_UPDATE: Handler(
+        trove_operations_callback, TroveOperationsPayload
     ),
 }
 
