@@ -23,7 +23,9 @@ from api.routes.v1.rest.trove_managers.models import (
     HistoricalTroveManagerData,
     HistoricalTroveOverviewResponse,
     LargePositionsResponse,
+    SingleVaultCollateralRatioResponse,
     SingleVaultEvents,
+    SingleVaultTroveCountResponse,
 )
 from database.engine import db
 from database.models.common import User
@@ -428,6 +430,7 @@ async def get_large_positions(
     return LargePositionsResponse(positions=results)
 
 
+@cached(ttl=300, cache=Cache.MEMORY)
 async def get_vault_recent_events(manager_id: int, period: Period):
     start_timestamp = apply_period(period)
     liquidations_7d = await db.fetch_val(
@@ -462,3 +465,55 @@ async def get_vault_recent_events(manager_id: int, period: Period):
     )
 
     return trove_overview
+
+
+@cached(ttl=300, cache=Cache.MEMORY)
+async def get_vault_cr(
+    manager_id: int, period: Period
+) -> SingleVaultCollateralRatioResponse:
+    start_timestamp = apply_period(period)
+    query = (
+        select(
+            [
+                TroveManagerSnapshot.collateral_ratio.label("value"),
+                TroveManagerSnapshot.block_timestamp.label("timestamp"),
+            ]
+        )
+        .where(
+            and_(
+                TroveManagerSnapshot.manager_id == manager_id,
+                TroveManagerSnapshot.block_timestamp >= start_timestamp,
+            )
+        )
+        .order_by(TroveManagerSnapshot.block_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+    ratio = [DecimalTimeSeries(**r) for r in results]
+    return SingleVaultCollateralRatioResponse(ratio=ratio)
+
+
+@cached(ttl=300, cache=Cache.MEMORY)
+async def get_vault_count(
+    manager_id: int, period: Period
+) -> SingleVaultTroveCountResponse:
+    start_timestamp = apply_period(period)
+    query = (
+        select(
+            [
+                TroveManagerSnapshot.open_troves.label("value"),
+                TroveManagerSnapshot.block_timestamp.label("timestamp"),
+            ]
+        )
+        .where(
+            and_(
+                TroveManagerSnapshot.manager_id == manager_id,
+                TroveManagerSnapshot.block_timestamp >= start_timestamp,
+            )
+        )
+        .order_by(TroveManagerSnapshot.block_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+    counts = [DecimalTimeSeries(**r) for r in results]
+    return SingleVaultTroveCountResponse(count=counts)

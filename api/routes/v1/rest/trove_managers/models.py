@@ -64,3 +64,11 @@ class SingleVaultEvents(BaseModel):
 
 class SingleVaultEventsReponse(BaseModel):
     info: SingleVaultEvents
+
+
+class SingleVaultCollateralRatioResponse(BaseModel):
+    ratio: list[DecimalTimeSeries]
+
+
+class SingleVaultTroveCountResponse(BaseModel):
+    count: list[DecimalTimeSeries]

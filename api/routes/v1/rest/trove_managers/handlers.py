@@ -12,6 +12,8 @@ from api.routes.v1.rest.trove_managers.crud import (
     get_historical_collateral_usd,
     get_large_positions,
     get_open_troves_overview,
+    get_vault_count,
+    get_vault_cr,
     get_vault_recent_events,
 )
 from api.routes.v1.rest.trove_managers.models import (
@@ -23,7 +25,9 @@ from api.routes.v1.rest.trove_managers.models import (
     HistoricalTroveManagerData,
     HistoricalTroveOverviewResponse,
     LargePositionsResponse,
+    SingleVaultCollateralRatioResponse,
     SingleVaultEventsReponse,
+    SingleVaultTroveCountResponse,
 )
 from database.queries.trove_manager import get_manager_id_by_address_and_chain
 from utils.const import CHAINS
@@ -193,3 +197,47 @@ async def get_trove_recent_ops(
     return SingleVaultEventsReponse(
         info=await (get_vault_recent_events(manager_id, filter_set.period))
     )
+
+
+@router.get(
+    "/{chain}/{manager}/collateral_ratio",
+    response_model=SingleVaultCollateralRatioResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get historical collateral ratio of a trove manager over a period"
+        )
+    ),
+)
+async def get_vault_collateral_ratio(
+    chain: str, manager: str, filter_set: FilterSet = Depends()
+):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    return await get_vault_cr(manager_id, filter_set.period)
+
+
+@router.get(
+    "/{chain}/{manager}/open_trove_count",
+    response_model=SingleVaultTroveCountResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get historical # of open troves over a period"
+        )
+    ),
+)
+async def get_vault_trove_count(
+    chain: str, manager: str, filter_set: FilterSet = Depends()
+):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    return await get_vault_count(manager_id, filter_set.period)
