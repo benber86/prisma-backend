@@ -7,13 +7,14 @@ aiosignal==1.3.1; python_version >= '3.7'
 alembic==1.12.0
 amqp==5.1.1; python_version >= '3.6'
 anyio==3.7.1; python_version >= '3.7'
-astroid==2.15.8; python_full_version >= '3.7.2'
+astroid==3.0.0; python_full_version >= '3.8.0'
 async-timeout==4.0.3; python_version >= '3.7'
 asyncpg==0.28.0
 attrs==23.1.0; python_version >= '3.7'
 babel==2.9.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
 billiard==3.6.4.0
-bitarray==2.8.1
+bitarray==2.8.2
+brotlipy==0.7.0
 celery==5.2.7
 certifi==2023.7.22; python_version >= '3.6'
 cffi==1.16.0; python_version >= '3.8'
@@ -43,20 +44,19 @@ filelock==3.12.4; python_version >= '3.8'
 flower==2.0.1
 frozenlist==1.4.0; python_version >= '3.8'
 gmpy2==2.1.5
-greenlet==2.0.2; python_version >= '3' and platform_machine == 'aarch64' or (platform_machine == 'ppc64le' or (platform_machine == 'x86_64' or (platform_machine == 'amd64' or (platform_machine == 'AMD64' or (platform_machine == 'win32' or platform_machine == 'WIN32')))))
+greenlet==3.0.0; python_version >= '3' and platform_machine == 'aarch64' or (platform_machine == 'ppc64le' or (platform_machine == 'x86_64' or (platform_machine == 'amd64' or (platform_machine == 'AMD64' or (platform_machine == 'win32' or platform_machine == 'WIN32')))))
 h11==0.14.0; python_version >= '3.7'
 hexbytes==0.3.1; python_version >= '3.7' and python_version < '4'
 humanize==4.8.0; python_version >= '3.8'
-identify==2.5.29; python_version >= '3.8'
+identify==2.5.30; python_version >= '3.8'
 idna==3.4; python_version >= '3.5'
 iniconfig==2.0.0; python_version >= '3.7'
 isort==5.12.0; python_full_version >= '3.8.0'
 jsonschema==4.19.1; python_version >= '3.8'
 jsonschema-specifications==2023.7.1; python_version >= '3.8'
 kombu==5.3.2; python_version >= '3.8'
-lazy-object-proxy==1.9.0; python_version >= '3.7'
 lru-dict==1.2.0
-magic-filter==1.0.11; python_version >= '3.7'
+magic-filter==1.0.12; python_version >= '3.7'
 mako==1.2.4; python_version >= '3.7'
 markupsafe==2.1.3; python_version >= '3.7'
 mccabe==0.7.0; python_version >= '3.6'
@@ -64,23 +64,23 @@ multidict==6.0.4; python_version >= '3.7'
 nodeenv==1.8.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6'
 numpy==1.26.0; python_version < '3.11'
 orjson==3.9.7
-packaging==23.1; python_version >= '3.7'
+packaging==23.2; python_version >= '3.7'
 pandas==2.1.1
 pandas-stubs==2.1.1.230928
 parsimonious==0.9.0
 pip==23.2.1
-platformdirs==3.10.0; python_version >= '3.7'
+platformdirs==3.11.0; python_version >= '3.7'
 pluggy==1.3.0; python_version >= '3.8'
 pre-commit==3.4.0
 prometheus-client==0.17.1; python_version >= '3.6'
 prompt-toolkit==3.0.39; python_full_version >= '3.7.0'
-protobuf==4.24.3; python_version >= '3.7'
+protobuf==4.24.4; python_version >= '3.7'
 psycopg2==2.9.6
-psycopg2-binary==2.9.8
+psycopg2-binary==2.9.9
 pycparser==2.21
 pycryptodome==3.19.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
 pydantic==1.10.13
-pylint==2.17.6
+pylint==3.0.0
 pytest==7.4.2
 pytest-asyncio==0.21.1
 python-dateutil==2.8.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
@@ -90,7 +90,7 @@ pyunormalize==15.0.0; python_version >= '3.6'
 pyyaml==6.0.1; python_version >= '3.6'
 redis==4.3.4
 referencing==0.30.2; python_version >= '3.8'
-regex==2023.8.8; python_version >= '3.6'
+regex==2023.10.3; python_version >= '3.7'
 requests==2.31.0
 rlp==3.0.0
 rpds-py==0.10.3; python_version >= '3.8'
@@ -106,11 +106,10 @@ tornado==6.3.3; python_version >= '3.8'
 types-pyopenssl==23.2.0.2
 types-pytz==2023.3.1.1
 types-redis==4.6.0.7
-types-requests==2.31.0.6
-types-urllib3==1.26.25.14
+types-requests==2.31.0.7
 typing-extensions==4.8.0; python_version >= '3.8'
 tzdata==2023.3; python_version >= '2'
-urllib3==2.0.5; python_version >= '3.7'
+urllib3==2.0.6; python_version >= '3.7'
 uvicorn==0.23.2
 vine==5.0.0; python_version >= '3.6'
 virtualenv==20.24.5; python_version >= '3.7'
@@ -119,5 +118,5 @@ web3==6.10.0
 web3-input-decoder==0.1.7
 web3mc==0.1.5
 websockets==10.4
-wrapt==1.15.0; python_version < '3.11'
+wrapt==1.15.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
 yarl==1.9.2; python_version >= '3.7'

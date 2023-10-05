@@ -39,6 +39,7 @@ aioredis = "*"
 pandas = "*"
 aiocache = "*"
 gmpy2 = "*"
+brotlipy = "*"
 
 [dev-packages]
 black = ">=22.12.0"
