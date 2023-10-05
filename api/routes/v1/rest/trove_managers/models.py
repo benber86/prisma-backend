@@ -55,3 +55,12 @@ class CollateralVsDebt(BaseModel):
 
 class LargePositionsResponse(BaseModel):
     positions: list[DecimalLabelledSeries]
+
+
+class SingleVaultEvents(BaseModel):
+    liquidations: int
+    redemptions: int
+
+
+class SingleVaultEventsReponse(BaseModel):
+    info: SingleVaultEvents

@@ -2,8 +2,6 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from api.models.common import Pagination
-
 
 class Status(Enum):
     open = "Open"

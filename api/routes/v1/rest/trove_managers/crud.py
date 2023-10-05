@@ -1,7 +1,9 @@
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 from aiocache import Cache, cached
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, desc, distinct, func, select
 
 from api.models.common import (
     DecimalLabelledSeries,
@@ -21,6 +23,7 @@ from api.routes.v1.rest.trove_managers.models import (
     HistoricalTroveManagerData,
     HistoricalTroveOverviewResponse,
     LargePositionsResponse,
+    SingleVaultEvents,
 )
 from database.engine import db
 from database.models.common import User
@@ -28,6 +31,7 @@ from database.models.troves import (
     Collateral,
     Trove,
     TroveManager,
+    TroveManagerParameter,
     TroveManagerSnapshot,
     TroveSnapshot,
 )
@@ -374,6 +378,7 @@ async def get_debt_histogram(manager_id: int) -> DistributionResponse:
     return DistributionResponse(distribution=distrib)
 
 
+@cached(ttl=300, cache=Cache.MEMORY)
 async def get_large_positions(
     manager_id: int, top_values: int, denomination: CollateralVsDebt
 ) -> LargePositionsResponse:
@@ -421,3 +426,39 @@ async def get_large_positions(
         )
 
     return LargePositionsResponse(positions=results)
+
+
+async def get_vault_recent_events(manager_id: int, period: Period):
+    start_timestamp = apply_period(period)
+    liquidations_7d = await db.fetch_val(
+        query=(
+            select([func.count(distinct(TroveSnapshot.liquidation_id))])
+            .join(Trove, Trove.id == TroveSnapshot.trove_id)
+            .where(
+                and_(
+                    Trove.manager_id == manager_id,
+                    TroveSnapshot.block_timestamp >= start_timestamp,
+                )
+            )
+        )
+    )
+
+    redemptions_7d = await db.fetch_val(
+        query=(
+            select([func.count(distinct(TroveSnapshot.redemption_id))])
+            .join(Trove, Trove.id == TroveSnapshot.trove_id)
+            .where(
+                and_(
+                    Trove.manager_id == manager_id,
+                    TroveSnapshot.block_timestamp >= start_timestamp,
+                )
+            )
+        )
+    )
+
+    trove_overview = SingleVaultEvents(
+        liquidations=liquidations_7d,
+        redemptions=redemptions_7d,
+    )
+
+    return trove_overview
