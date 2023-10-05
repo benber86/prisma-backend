@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.routes.v1.rest.collateral.crud import (
     get_gecko_supply,
+    get_lsd_share,
     get_market_prices,
     get_oracle_prices,
 )
@@ -97,8 +98,13 @@ async def get_collateral_info(chain: str, collateral: str):
         if collateral.lower() in RISK_REPORTS
         else ""
     )
+    share = await get_lsd_share(collateral)
     return CollateralGeneralInfoReponse(
         info=CollateralGeneralInfo(
-            price=price, supply=supply, tvl=price * supply, risk=risk
+            price=price,
+            supply=supply,
+            tvl=price * supply,
+            share=share,
+            risk=risk,
         )
     )

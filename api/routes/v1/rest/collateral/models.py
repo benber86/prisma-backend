@@ -21,6 +21,7 @@ class CollateralGeneralInfo(BaseModel):
     price: float
     supply: float
     tvl: float
+    share: float
     risk: str
 
 
