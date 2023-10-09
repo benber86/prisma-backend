@@ -29,6 +29,7 @@ def _get_price_info_from_defi_llamma(chain: str) -> list[LlammaPriceSeries]:
     return [
         LlammaPriceSeries(**data)
         for data in r.json()["coins"][f"{chain}:{address}"]["prices"]
+        if data["price"] > 0.5
     ]
 
 
