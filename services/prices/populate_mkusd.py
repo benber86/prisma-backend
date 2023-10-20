@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 from pydantic import BaseModel
@@ -21,14 +21,22 @@ class LlammaPriceSeries(BaseModel):
     timestamp: int
 
 
-def _get_price_info_from_defi_llamma(chain: str) -> list[LlammaPriceSeries]:
-    current_timestamp = datetime.utcnow().timestamp()
+def _parse_timestamp(date: str) -> int:
+    dt = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
+    return int(dt.replace(tzinfo=timezone.utc).timestamp())
+
+
+def _get_price_info_from_curve_prices(chain: str) -> list[LlammaPriceSeries]:
+    current_timestamp = int(datetime.utcnow().timestamp())
+    start_timestamp = current_timestamp - (60 * 60 * 24 * 7)
     address = STABLECOINS[chain]
-    dl_endpoint = f"https://coins.llama.fi/chart/{chain}:{address}?end={current_timestamp}&span=1000&period=1h"
-    r = requests.get(dl_endpoint)
+    cp_endpoint = f"https://prices.curve.fi/v1/usd_price/{chain}/{address}/history?interval=hour&start={start_timestamp}&end={current_timestamp}"
+    r = requests.get(cp_endpoint)
     return [
-        LlammaPriceSeries(**data)
-        for data in r.json()["coins"][f"{chain}:{address}"]["prices"]
+        LlammaPriceSeries(
+            price=data["price"], timestamp=_parse_timestamp(data["timestamp"])
+        )
+        for data in r.json()["data"]
     ]
 
 
@@ -47,7 +55,7 @@ async def _update_db_with_llama_prices(
 async def update_mkusd_price_history(
     chain: str = ethereum.CHAIN_NAME, chain_id: int = ethereum.CHAIN_ID
 ):
-    data = _get_price_info_from_defi_llamma(chain)
+    data = _get_price_info_from_curve_prices(chain)
     await _update_db_with_llama_prices(chain_id, data)
 
 
