@@ -6,9 +6,16 @@ from pydantic import BaseModel
 class Period(Enum):
     week = "7d"
     month = "1m"
-    trimester = "6m"
+    trimester = "3m"
     semester = "6m"
     all = "all"
+
+
+class GroupBy(Enum):
+    week = "week"
+    month = "month"
+    day = "day"
+    year = "year"
 
 
 class Denomination(Enum):
