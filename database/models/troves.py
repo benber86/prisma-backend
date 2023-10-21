@@ -351,6 +351,7 @@ class CollateralWithdrawal(Base):
 class Liquidation(Base):
     __tablename__ = "liquidations"
 
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
     liquidator_id = Column(ForeignKey("users.id"))
     liquidated_debt = Column(Numeric)
     liquidated_collateral = Column(Numeric)
@@ -365,11 +366,13 @@ class Liquidation(Base):
     troves_affected = relationship(
         "TroveSnapshot", back_populates="liquidation"
     )
+    chain = relationship("Chain")
     liquidator = relationship("User")
 
     __table_args__ = (
         Index(
-            "idx_liquidations__liquidator_id__block_timestamp",
+            "idx_liquidations__chain_id__liquidator_id__block_timestamp",
+            chain_id,
             liquidator_id,
             block_timestamp,
             unique=True,
@@ -380,6 +383,7 @@ class Liquidation(Base):
 class Redemption(Base):
     __tablename__ = "redemptions"
 
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
     redeemer_id = Column(ForeignKey("users.id"))
     attempted_debt_amount = Column(Numeric)
     actual_debt_amount = Column(Numeric)
@@ -396,11 +400,13 @@ class Redemption(Base):
     troves_affected = relationship(
         "TroveSnapshot", back_populates="redemption"
     )
+    chain = relationship("Chain")
     redeemer = relationship("User")
 
     __table_args__ = (
         Index(
-            "idx_redemptions__redeemer_id__block_timestamp",
+            "idx_redemptions__chain_id__redeemer_id__block_timestamp",
+            chain_id,
             redeemer_id,
             block_timestamp,
             unique=True,

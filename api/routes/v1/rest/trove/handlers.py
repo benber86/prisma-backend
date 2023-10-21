@@ -3,13 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.models.common import Pagination
 from api.routes.v1.rest.trove.crud import search_for_troves
-from api.routes.v1.rest.trove.models import (
-    FilterSet,
-    OrderBy,
-    Status,
-    TroveEntry,
-    TroveEntryReponse,
-)
+from api.routes.v1.rest.trove.models import FilterSet, TroveEntryReponse
 from database.queries.trove_manager import get_manager_id_by_address_and_chain
 from utils.const import CHAINS
 

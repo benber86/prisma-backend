@@ -76,6 +76,7 @@ TROVE_SNAPSHOT_QUERY = """
       attemptedDebtAmount
       actualDebtAmount
       collateralSent
+      collateralSentUSD
       collateralFeeUSD
       collateralSentToRedeemer
       collateralSentToRedeemerUSD
@@ -126,7 +127,7 @@ def _str_to_trove_operation_enum(
     return operation_mapping[operation]
 
 
-async def _update_liquidation(liquidation: dict) -> str | None:
+async def _update_liquidation(chain_id: int, liquidation: dict) -> str | None:
     if not liquidation:
         return None
     # create user entry
@@ -135,6 +136,7 @@ async def _update_liquidation(liquidation: dict) -> str | None:
     await db.execute(query)
 
     liq_indexes = {
+        "chain_id": chain_id,
         "liquidator_id": liquidator_id,
         "block_timestamp": liquidation["blockTimestamp"],
     }
@@ -154,7 +156,7 @@ async def _update_liquidation(liquidation: dict) -> str | None:
     return await db.execute(query)
 
 
-async def _update_redemption(redemption: dict) -> str | None:
+async def _update_redemption(chain_id: int, redemption: dict) -> str | None:
     if not redemption:
         return None
     # create user entry
@@ -163,6 +165,7 @@ async def _update_redemption(redemption: dict) -> str | None:
     await db.execute(query)
 
     red_indexes = {
+        "chain_id": chain_id,
         "redeemer_id": redeemer_id,
         "block_timestamp": redemption["blockTimestamp"],
     }
@@ -247,8 +250,12 @@ async def update_trove_snapshots(
                 "block_timestamp": snapshot["blockTimestamp"],
             }
 
-            liquidation_id = await _update_liquidation(snapshot["liquidation"])
-            redemption_id = await _update_redemption(snapshot["redemption"])
+            liquidation_id = await _update_liquidation(
+                chain_id, snapshot["liquidation"]
+            )
+            redemption_id = await _update_redemption(
+                chain_id, snapshot["redemption"]
+            )
             data = {
                 "operation": _str_to_trove_operation_enum(
                     snapshot["operation"]
