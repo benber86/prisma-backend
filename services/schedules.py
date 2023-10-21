@@ -30,7 +30,7 @@ PRICE_SYNC_SCHEDULE = {
 HOLDERS_SCHEDULE = {
     f"update-holders-{chain}": {
         "task": "services.prices.mkusd_holders.get_holder_data",
-        "schedule": timedelta(hours=12),
+        "schedule": timedelta(hours=24),
         "args": (chain,),
     }
     for chain, _ in CHAINS.items()
