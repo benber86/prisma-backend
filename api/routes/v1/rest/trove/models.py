@@ -42,3 +42,19 @@ class FilterSet(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class TroveSnapshotData(BaseModel):
+    operation: str
+    collateral: float
+    collateral_usd: float
+    cr: float
+    debt: float
+    stake: float
+    block: int
+    timestamp: int
+    hash: str
+
+
+class TroveSnapshotsResponse(BaseModel):
+    snapshots: list[TroveSnapshotData]

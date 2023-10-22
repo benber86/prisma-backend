@@ -1,5 +1,5 @@
 from fastapi import Depends
-from sqlalchemy import case, desc, func, or_, select
+from sqlalchemy import String, and_, case, cast, desc, func, or_, select
 from sqlalchemy.orm import aliased
 
 from api.models.common import Pagination
@@ -8,6 +8,8 @@ from api.routes.v1.rest.trove.models import (
     Status,
     TroveEntry,
     TroveEntryReponse,
+    TroveSnapshotData,
+    TroveSnapshotsResponse,
 )
 from database.engine import db
 from database.models.troves import Trove, TroveSnapshot
@@ -117,3 +119,33 @@ async def search_for_troves(
     return TroveEntryReponse(
         page=page, total_entries=total_entries, troves=trove_entries
     )
+
+
+async def get_all_snapshots(
+    manager_id: int, owner: str
+) -> TroveSnapshotsResponse:
+    query = (
+        select(
+            [
+                cast(TroveSnapshot.operation, String).label("operation"),
+                TroveSnapshot.collateral,
+                TroveSnapshot.collateral_usd,
+                TroveSnapshot.collateral_ratio.label("cr"),
+                TroveSnapshot.debt,
+                TroveSnapshot.stake,
+                TroveSnapshot.block_number.label("block"),
+                TroveSnapshot.block_timestamp.label("timestamp"),
+                TroveSnapshot.transaction_hash.label("hash"),
+            ]
+        )
+        .join(Trove, Trove.id == TroveSnapshot.trove_id)
+        .where(
+            and_(Trove.manager_id == manager_id, Trove.owner_id.ilike(owner))
+        )
+    )
+
+    results = await db.fetch_all(query)
+
+    snapshots = [TroveSnapshotData(**dict(result)) for result in results]
+
+    return TroveSnapshotsResponse(snapshots=snapshots)
