@@ -48,7 +48,7 @@ class TroveSnapshotData(BaseModel):
     operation: str
     collateral: float
     collateral_usd: float
-    cr: float
+    cr: float | None
     debt: float
     stake: float
     block: int
@@ -58,3 +58,15 @@ class TroveSnapshotData(BaseModel):
 
 class TroveSnapshotsResponse(BaseModel):
     snapshots: list[TroveSnapshotData]
+
+
+class TroveHistoryData(BaseModel):
+    collateral: float
+    collateral_usd: float
+    cr: float | None
+    debt: float
+    timestamp: int
+
+
+class TroveHistoryResponse(BaseModel):
+    history: list[TroveHistoryData]

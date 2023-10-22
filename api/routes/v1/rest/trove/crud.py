@@ -1,5 +1,15 @@
-from fastapi import Depends
-from sqlalchemy import String, and_, case, cast, desc, func, or_, select
+from sqlalchemy import (
+    String,
+    and_,
+    case,
+    cast,
+    desc,
+    func,
+    join,
+    null,
+    or_,
+    select,
+)
 from sqlalchemy.orm import aliased
 
 from api.models.common import Pagination
@@ -8,11 +18,13 @@ from api.routes.v1.rest.trove.models import (
     Status,
     TroveEntry,
     TroveEntryReponse,
+    TroveHistoryData,
+    TroveHistoryResponse,
     TroveSnapshotData,
     TroveSnapshotsResponse,
 )
 from database.engine import db
-from database.models.troves import Trove, TroveSnapshot
+from database.models.troves import Trove, TroveManagerSnapshot, TroveSnapshot
 
 
 def _map_trove_to_entry(trove, created_at, last_update, collateral_ratio):
@@ -92,15 +104,6 @@ async def search_for_troves(
     result = await db.fetch_all(query)
     if not result:
         return None
-    for row in result:
-        print(row[0])
-        print(row.Trove)
-        print(row[1])
-        print(row[2])
-        print(row[3])
-        print(row["last_update"])
-        print(row.created_at)
-        print("#" * 72)
 
     trove_entries = [
         _map_trove_to_entry(
@@ -149,3 +152,105 @@ async def get_all_snapshots(
     snapshots = [TroveSnapshotData(**dict(result)) for result in results]
 
     return TroveSnapshotsResponse(snapshots=snapshots)
+
+
+async def get_snapshot_historical_stats(
+    manager_id: int, owner_id: str
+) -> TroveHistoryResponse:
+    trove_snapshots = (
+        select(
+            TroveSnapshot.collateral,
+            TroveSnapshot.debt,
+            TroveSnapshot.block_timestamp.label("snapshot_timestamp"),
+            func.lead(TroveSnapshot.block_timestamp)
+            .over(order_by=TroveSnapshot.block_timestamp)
+            .label("next_snapshot_timestamp"),
+        )
+        .join(
+            Trove,
+            and_(
+                TroveSnapshot.trove_id == Trove.id,
+                Trove.owner_id.ilike(owner_id),
+                Trove.manager_id == manager_id,
+            ),
+        )
+        .order_by(TroveSnapshot.block_timestamp)
+    ).cte("trove_snapshots")
+
+    max_timestamp_subquery = (
+        select(
+            func.max(TroveManagerSnapshot.block_timestamp).label(
+                "max_timestamp"
+            )
+        ).where(TroveManagerSnapshot.manager_id == manager_id)
+    ).alias("max_timestamp_subquery")
+
+    manager_snapshots = (
+        select(
+            TroveManagerSnapshot.block_timestamp,
+            TroveManagerSnapshot.collateral_price,
+        )
+        .where(TroveManagerSnapshot.manager_id == manager_id)
+        .distinct(TroveManagerSnapshot.collateral_price)
+        .order_by(
+            TroveManagerSnapshot.collateral_price,
+            TroveManagerSnapshot.block_timestamp,
+        )
+    ).alias("manager_snapshots")
+
+    query = (
+        select(
+            trove_snapshots.c.collateral,
+            trove_snapshots.c.debt,
+            manager_snapshots.c.block_timestamp,
+            (
+                trove_snapshots.c.collateral
+                * manager_snapshots.c.collateral_price
+            ).label("collateral_usd"),
+            case(
+                [(trove_snapshots.c.debt == 0, None)],
+                else_=(
+                    (
+                        trove_snapshots.c.collateral
+                        * manager_snapshots.c.collateral_price
+                    )
+                    / trove_snapshots.c.debt
+                ),
+            ).label("cr"),
+        )
+        .join(
+            manager_snapshots,
+            and_(
+                manager_snapshots.c.block_timestamp
+                >= trove_snapshots.c.snapshot_timestamp,
+                or_(
+                    trove_snapshots.c.next_snapshot_timestamp
+                    == None,  # noqa: E711
+                    manager_snapshots.c.block_timestamp
+                    < trove_snapshots.c.next_snapshot_timestamp,
+                ),
+            ),
+        )
+        .join(
+            max_timestamp_subquery,
+            manager_snapshots.c.block_timestamp
+            <= max_timestamp_subquery.c.max_timestamp,
+            isouter=True,
+        )
+        .order_by(manager_snapshots.c.block_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+
+    history_data = [
+        TroveHistoryData(
+            collateral=float(result.collateral),
+            collateral_usd=float(result.collateral_usd),
+            cr=float(result.cr) if result.cr is not None else None,
+            debt=float(result.debt),
+            timestamp=int(result.block_timestamp),
+        )
+        for result in results
+    ]
+
+    return TroveHistoryResponse(history=history_data)
