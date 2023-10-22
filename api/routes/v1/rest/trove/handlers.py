@@ -74,7 +74,7 @@ async def get_trove_snapshots(chain: str, manager: str, owner: str):
     response_model=TroveHistoryResponse,
     **get_router_method_settings(
         BaseMethodDescription(
-            summary="Get all available snapshots for a specific trove"
+            summary="Get collateral/CR/debt history for a specific trove"
         )
     ),
 )
