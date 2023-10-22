@@ -13,6 +13,7 @@ from api.routes.v1.rest.redemptions.models import (
     ListRedemptionResponse,
     OrderFilter,
 )
+from database.queries.trove_manager import get_manager_id_by_address_and_chain
 from utils.const import CHAINS
 
 logger = get_logger(__name__)
@@ -21,7 +22,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/{chain}/summary",
+    "/{chain}/{manager}/summary",
     response_model=AggregateRedemptionResponse,
     **get_router_method_settings(
         BaseMethodDescription(
@@ -29,20 +30,28 @@ router = APIRouter()
         )
     ),
 )
-async def get_redemption_stats(chain: str, filter_set: FilterSet = Depends()):
+async def get_redemption_stats(
+    chain: str, manager: str, filter_set: FilterSet = Depends()
+):
 
     if chain not in CHAINS:
         raise HTTPException(status_code=404, detail="Chain not found")
 
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+
     return await (
         get_aggregated_stats(
-            CHAINS[chain], filter_set.period, filter_set.groupby
+            CHAINS[chain], manager_id, filter_set.period, filter_set.groupby
         )
     )
 
 
 @router.get(
-    "/{chain}",
+    "/{chain}/{manager}",
     response_model=ListRedemptionResponse,
     **get_router_method_settings(
         BaseMethodDescription(summary="Get all redemptions")
@@ -50,6 +59,7 @@ async def get_redemption_stats(chain: str, filter_set: FilterSet = Depends()):
 )
 async def get_all_redemptions(
     chain: str,
+    manager: str,
     pagination: Pagination = Depends(),
     order: OrderFilter = Depends(),
 ):
@@ -57,4 +67,12 @@ async def get_all_redemptions(
     if chain not in CHAINS:
         raise HTTPException(status_code=404, detail="Chain not found")
 
-    return await (search_redemptions(CHAINS[chain], pagination, order))
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+
+    return await (
+        search_redemptions(CHAINS[chain], manager_id, pagination, order)
+    )

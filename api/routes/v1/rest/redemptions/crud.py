@@ -1,4 +1,4 @@
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import desc, distinct, func, select
 from web3 import Web3
 
 from api.models.common import GroupBy, Pagination, Period
@@ -16,23 +16,37 @@ from database.models.troves import Redemption, Trove, TroveSnapshot
 
 
 async def get_aggregated_stats(
-    chain_id: int, period: Period, groupby: GroupBy
+    chain_id: int, manager_id: int, period: Period, groupby: GroupBy
 ) -> AggregateRedemptionResponse:
     start_timestamp = apply_period(period)
+
+    subquery = (
+        select(
+            Redemption.id,
+            Redemption.actual_debt_amount,
+            Redemption.block_timestamp,
+        )
+        .join(TroveSnapshot, TroveSnapshot.redemption_id == Redemption.id)
+        .join(Trove, Trove.id == TroveSnapshot.trove_id)
+        .where(
+            (Redemption.block_timestamp >= start_timestamp)
+            & (Redemption.chain_id == chain_id)
+            & (Trove.manager_id == manager_id)
+        )
+        .group_by(Redemption.id)
+    ).alias("grouped_redemptions")
+
     rounded_timestamp = func.date_trunc(
-        groupby, func.to_timestamp(Redemption.block_timestamp)
+        groupby, func.to_timestamp(subquery.c.block_timestamp)
     )
 
     query = (
         select(
-            func.sum(Redemption.actual_debt_amount).label("redeemed"),
+            func.sum(subquery.c.actual_debt_amount).label("redeemed"),
             func.count().label("count"),
             func.extract("epoch", rounded_timestamp).label("timestamp"),
         )
-        .where(
-            (Redemption.block_timestamp >= start_timestamp)
-            & (Redemption.chain_id == chain_id)
-        )
+        .select_from(subquery)
         .group_by(rounded_timestamp)
         .order_by(rounded_timestamp)
     )
@@ -46,7 +60,7 @@ async def get_aggregated_stats(
 
 
 async def search_redemptions(
-    chain_id: int, pagination: Pagination, order: OrderFilter
+    chain_id: int, manager_id: int, pagination: Pagination, order: OrderFilter
 ) -> ListRedemptionResponse:
 
     query = (
@@ -57,7 +71,10 @@ async def search_redemptions(
         )
         .outerjoin(TroveSnapshot, TroveSnapshot.redemption_id == Redemption.id)
         .outerjoin(Trove, TroveSnapshot.trove_id == Trove.id)
-        .where(Redemption.chain_id == chain_id)
+        .where(
+            (Redemption.chain_id == chain_id)
+            & (Trove.manager_id == manager_id)
+        )
         .group_by(Redemption.id)
     )
 
