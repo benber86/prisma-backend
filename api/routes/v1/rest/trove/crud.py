@@ -317,22 +317,27 @@ async def get_position(manager_id: int, owner_id: str) -> RatioPosition:
         owner_cr = None
         rank = None
 
-    df["cr_rounded"] = df["cr"].astype(float).round(0)
+    df["cr_clamped"] = df["cr"].apply(lambda x: round(min(x, 300)))
 
-    grouped = df.groupby("cr_rounded")
+    grouped = df.groupby("cr_clamped")
     df_agg = grouped.agg({"collateral_usd": "sum"}).reset_index()
-    df_agg["trove_count"] = grouped.size().reset_index(
-        drop=True
-    )  # Count troves at each collateral ratio
+    df_agg["trove_count"] = grouped.size().reset_index(drop=True)
+    df_agg["cumulative_trove_count"] = df_agg["trove_count"].cumsum()
     df_agg["cumulative_collateral_usd"] = df_agg["collateral_usd"].cumsum()
 
     positions = (
-        df_agg[["cr_rounded", "cumulative_collateral_usd", "trove_count"]]
+        df_agg[
+            [
+                "cr_clamped",
+                "cumulative_collateral_usd",
+                "cumulative_trove_count",
+            ]
+        ]
         .apply(
             lambda row: Position(
-                ratio=row["cr_rounded"],
+                ratio=row["cr_clamped"],
                 collateral_usd=row["cumulative_collateral_usd"],
-                trove_count=row["trove_count"],
+                trove_count=row["cumulative_trove_count"],
             ),
             axis=1,
         )
