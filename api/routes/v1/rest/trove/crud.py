@@ -16,7 +16,12 @@ from api.routes.v1.rest.trove.models import (
     TroveSnapshotsResponse,
 )
 from database.engine import db
-from database.models.troves import Trove, TroveManagerSnapshot, TroveSnapshot
+from database.models.troves import (
+    Collateral,
+    Trove,
+    TroveManagerSnapshot,
+    TroveSnapshot,
+)
 
 
 def _map_trove_to_entry(trove, created_at, last_update, collateral_ratio):
@@ -44,8 +49,21 @@ async def search_for_troves(
     first_snapshot = aliased(TroveSnapshot)
     last_snapshot = aliased(TroveSnapshot)
 
+    collateral_price = await db.fetch_val(
+        select([Collateral.latest_price])
+        .where(Collateral.manager_id == manager_id)
+        .order_by(desc(Collateral.latest_price))
+        .limit(1)
+    )
+
+    if collateral_price is None:
+        return None
+
+    collateral_usd = (Trove.collateral * collateral_price).label(
+        "collateral_usd"
+    )
     collateral_ratio = case(
-        [(Trove.debt == 0, 0)], else_=(Trove.collateral_usd / Trove.debt)
+        [(Trove.debt == 0, 0)], else_=(collateral_usd / Trove.debt)
     ).label("collateral_ratio")
 
     if filter_set.order_by in [
@@ -57,7 +75,7 @@ async def search_for_troves(
             order_by_column = func.max(last_snapshot.block_timestamp)
         elif filter_set.order_by == "created_at":
             order_by_column = func.min(first_snapshot.block_timestamp)
-        elif filter_set.order_by == "collateral_ratio":
+        else:
             order_by_column = collateral_ratio
     else:
         order_by_column = getattr(Trove, filter_set.order_by)  # type: ignore
@@ -66,7 +84,7 @@ async def search_for_troves(
         select(
             Trove.owner_id,
             Trove.status,
-            Trove.collateral_usd,
+            collateral_usd,
             Trove.debt,
             func.min(first_snapshot.block_timestamp).label("created_at"),
             func.max(last_snapshot.block_timestamp).label("last_update"),
@@ -83,8 +101,18 @@ async def search_for_troves(
             Trove.owner_id.ilike(f"%{filter_set.owner_filter}%")
         )
 
-    total_entries = await db.fetch_val(query.with_only_columns([func.count()]))
+    count_query = (
+        select([func.count()])
+        .select_from(Trove)
+        .where(Trove.manager_id == manager_id)
+    )
 
+    if filter_set.owner_filter:
+        count_query = count_query.where(
+            Trove.owner_id.ilike(f"%{filter_set.owner_filter}%")
+        )
+
+    total_entries = await db.fetch_val(count_query)
     items = min(pagination.items, 100)
     page = pagination.page if pagination else 1
 
@@ -352,3 +380,61 @@ async def get_position(manager_id: int, owner_id: str) -> RatioPosition:
         ratio=owner_cr,
         positions=positions,
     )
+
+
+async def get_trove_details(
+    manager_id: int, owner_id: str
+) -> TroveEntry | None:
+    trove_snapshot = aliased(TroveSnapshot)
+
+    collateral_price = await db.fetch_val(
+        select([Collateral.latest_price])
+        .where(Collateral.manager_id == manager_id)
+        .order_by(desc(Collateral.latest_price))
+        .limit(1)
+    )
+
+    if collateral_price is None:
+        return None
+
+    query = (
+        select(
+            [
+                Trove.owner_id,
+                Trove.status,
+                Trove.collateral,
+                Trove.debt,
+                func.min(trove_snapshot.block_timestamp).label("created_at"),
+                func.max(trove_snapshot.block_timestamp).label("last_update"),
+            ]
+        )
+        .join(trove_snapshot, trove_snapshot.trove_id == Trove.id)
+        .where(
+            and_(
+                Trove.manager_id == manager_id, Trove.owner_id.ilike(owner_id)
+            )
+        )
+        .group_by(Trove.owner_id, Trove.status, Trove.collateral, Trove.debt)
+    )
+
+    row = await db.fetch_one(query)
+
+    if row is None:
+        return None
+
+    collateral_usd = row[2] * collateral_price
+    collateral_ratio = collateral_usd / row[3] if row[3] != 0 else None
+
+    trove_entry = _map_trove_to_entry(
+        {
+            "owner_id": row[0],
+            "status": row[1],
+            "collateral_usd": collateral_usd,
+            "debt": row[3],
+        },
+        row[4],
+        row[5],
+        collateral_ratio,
+    )
+
+    return trove_entry

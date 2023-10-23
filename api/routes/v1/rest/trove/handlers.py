@@ -6,11 +6,13 @@ from api.routes.v1.rest.trove.crud import (
     get_all_snapshots,
     get_position,
     get_snapshot_historical_stats,
+    get_trove_details,
     search_for_troves,
 )
 from api.routes.v1.rest.trove.models import (
     FilterSet,
     RatioPosition,
+    TroveEntry,
     TroveEntryReponse,
     TroveHistoryResponse,
     TroveSnapshotsResponse,
@@ -113,3 +115,28 @@ async def get_trove_rank(chain: str, manager: str, owner: str):
         raise HTTPException(status_code=404, detail="Manager not found")
 
     return await get_position(manager_id, owner)
+
+
+@router.get(
+    "/{chain}/{manager}/{owner}",
+    response_model=TroveEntry,
+    **get_router_method_settings(
+        BaseMethodDescription(summary="Get details for a single trove")
+    ),
+)
+async def get_trove(chain: str, manager: str, owner: str):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+
+    res = await get_trove_details(manager_id, owner)
+    if not res:
+        raise HTTPException(
+            status_code=404, detail="No data found for this trove"
+        )
+    return res

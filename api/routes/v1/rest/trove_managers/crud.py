@@ -33,7 +33,6 @@ from database.models.troves import (
     Collateral,
     Trove,
     TroveManager,
-    TroveManagerParameter,
     TroveManagerSnapshot,
     TroveSnapshot,
 )
