@@ -24,7 +24,7 @@ class TroveEntry(BaseModel):
     status: Status
     collateral_usd: float
     debt: float
-    collateral_ratio: float
+    collateral_ratio: float | None
     created_at: int
     last_update: int
 
