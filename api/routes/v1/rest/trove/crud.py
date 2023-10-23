@@ -317,7 +317,7 @@ async def get_position(manager_id: int, owner_id: str) -> RatioPosition:
         owner_cr = None
         rank = None
 
-    df["cr_clamped"] = df["cr"].apply(lambda x: round(min(x, 300)))
+    df["cr_clamped"] = df["cr"].apply(lambda x: round(min(x, 250)))
 
     grouped = df.groupby("cr_clamped")
     df_agg = grouped.agg({"collateral_usd": "sum"}).reset_index()
