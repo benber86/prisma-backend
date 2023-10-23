@@ -70,3 +70,16 @@ class TroveHistoryData(BaseModel):
 
 class TroveHistoryResponse(BaseModel):
     history: list[TroveHistoryData]
+
+
+class Position(BaseModel):
+    ratio: float
+    collateral_usd: float
+    trove_count: int
+
+
+class RatioPosition(BaseModel):
+    rank: int | None
+    total_positions: int
+    ratio: float | None
+    positions: list[Position]

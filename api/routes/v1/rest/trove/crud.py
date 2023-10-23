@@ -1,20 +1,12 @@
-from sqlalchemy import (
-    String,
-    and_,
-    case,
-    cast,
-    desc,
-    func,
-    join,
-    null,
-    or_,
-    select,
-)
+import pandas as pd
+from sqlalchemy import String, and_, case, cast, desc, func, or_, select
 from sqlalchemy.orm import aliased
 
 from api.models.common import Pagination
 from api.routes.v1.rest.trove.models import (
     FilterSet,
+    Position,
+    RatioPosition,
     Status,
     TroveEntry,
     TroveEntryReponse,
@@ -254,3 +246,104 @@ async def get_snapshot_historical_stats(
     ]
 
     return TroveHistoryResponse(history=history_data)
+
+
+async def get_position(manager_id: int, owner_id: str) -> RatioPosition:
+
+    latest_manager_snapshot = (
+        select([TroveManagerSnapshot.collateral_price])
+        .where(TroveManagerSnapshot.manager_id == manager_id)
+        .order_by(desc(TroveManagerSnapshot.block_timestamp))
+        .limit(1)
+    ).alias("latest_manager_snapshot")
+
+    subquery = (
+        select(
+            [
+                TroveSnapshot.trove_id,
+                func.max(TroveSnapshot.block_timestamp).label(
+                    "latest_timestamp"
+                ),
+            ]
+        )
+        .group_by(TroveSnapshot.trove_id)
+        .alias("subquery")
+    )
+
+    query = (
+        select(
+            [
+                Trove.owner_id,
+                case(
+                    [(TroveSnapshot.debt == 0, None)],
+                    else_=(
+                        (
+                            TroveSnapshot.collateral
+                            * latest_manager_snapshot.c.collateral_price
+                        )
+                        / TroveSnapshot.debt
+                        * 100
+                    ),
+                ).label("cr"),
+                (
+                    TroveSnapshot.collateral
+                    * latest_manager_snapshot.c.collateral_price
+                ).label("collateral_usd"),
+            ]
+        )
+        .join(Trove, Trove.id == TroveSnapshot.trove_id)
+        .join(latest_manager_snapshot, Trove.manager_id == manager_id)
+        .join(
+            subquery,
+            and_(
+                TroveSnapshot.trove_id == subquery.c.trove_id,
+                TroveSnapshot.block_timestamp == subquery.c.latest_timestamp,
+            ),
+        )
+        .where(and_(Trove.manager_id == manager_id))
+    )
+
+    results = await db.fetch_all(query)
+    results = [dict(row) for row in results]
+    df = pd.DataFrame(results)
+    df["owner_id"] = df["owner_id"].str.lower()
+    owner_id = owner_id.lower()
+    df = df.dropna()
+
+    if owner_id in df["owner_id"].values:
+        owner_cr = df[df["owner_id"] == owner_id]["cr"].iloc[0]
+        rank = df[df["cr"] <= owner_cr].shape[0]
+    else:
+        owner_cr = None
+        rank = None
+
+    df["cr_rounded"] = df["cr"].astype(float).round(0)
+
+    grouped = df.groupby("cr_rounded")
+    df_agg = grouped.agg({"collateral_usd": "sum"}).reset_index()
+    df_agg["trove_count"] = grouped.size().reset_index(
+        drop=True
+    )  # Count troves at each collateral ratio
+    df_agg["cumulative_collateral_usd"] = df_agg["collateral_usd"].cumsum()
+
+    positions = (
+        df_agg[["cr_rounded", "cumulative_collateral_usd", "trove_count"]]
+        .apply(
+            lambda row: Position(
+                ratio=row["cr_rounded"],
+                collateral_usd=row["cumulative_collateral_usd"],
+                trove_count=row["trove_count"],
+            ),
+            axis=1,
+        )
+        .tolist()
+    )
+
+    total_positions = df_agg["trove_count"].sum()
+
+    return RatioPosition(
+        rank=rank,
+        total_positions=total_positions,
+        ratio=owner_cr,
+        positions=positions,
+    )

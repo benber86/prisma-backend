@@ -4,11 +4,13 @@ from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.models.common import Pagination
 from api.routes.v1.rest.trove.crud import (
     get_all_snapshots,
+    get_position,
     get_snapshot_historical_stats,
     search_for_troves,
 )
 from api.routes.v1.rest.trove.models import (
     FilterSet,
+    RatioPosition,
     TroveEntryReponse,
     TroveHistoryResponse,
     TroveSnapshotsResponse,
@@ -89,3 +91,25 @@ async def get_trove_values(chain: str, manager: str, owner: str):
         raise HTTPException(status_code=404, detail="Manager not found")
 
     return await get_snapshot_historical_stats(manager_id, owner)
+
+
+@router.get(
+    "/{chain}/{manager}/rank/{owner}",
+    response_model=RatioPosition,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get trove position and cumulative collateral at each ratio"
+        )
+    ),
+)
+async def get_trove_rank(chain: str, manager: str, owner: str):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    manager_id = await get_manager_id_by_address_and_chain(
+        chain_id=CHAINS[chain], address=manager
+    )
+    if not manager_id:
+        raise HTTPException(status_code=404, detail="Manager not found")
+
+    return await get_position(manager_id, owner)
