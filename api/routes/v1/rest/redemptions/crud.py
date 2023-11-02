@@ -1,7 +1,7 @@
 from sqlalchemy import desc, distinct, func, select
 from web3 import Web3
 
-from api.models.common import GroupBy, Pagination, Period
+from api.models.common import GroupBy, Pagination, PaginationReponse, Period
 from api.routes.utils.time import apply_period
 from api.routes.v1.rest.redemptions.models import (
     AggregateRedemption,
@@ -62,42 +62,53 @@ async def get_aggregated_stats(
 async def search_redemptions(
     chain_id: int, manager_id: int, pagination: Pagination, order: OrderFilter
 ) -> ListRedemptionResponse:
-
-    query = (
-        select(
-            Redemption,
-            func.array_agg(Trove.owner_id).label("troves_affected"),
-            func.count(Trove.id).label("troves_affected_count"),
-        )
+    base_query = (
+        select(Redemption)
         .outerjoin(TroveSnapshot, TroveSnapshot.redemption_id == Redemption.id)
         .outerjoin(Trove, TroveSnapshot.trove_id == Trove.id)
         .where(
             (Redemption.chain_id == chain_id)
             & (Trove.manager_id == manager_id)
         )
-        .group_by(Redemption.id)
     )
+
+    if order.trove_filter:
+        trove_filter_query = select(Trove.id).where(
+            Trove.owner_id.ilike(f"%{order.trove_filter}%")
+        )
+        base_query = base_query.where(Trove.id.in_(trove_filter_query))
+
+    total_records_query = select(func.count()).select_from(
+        base_query.alias("subquery")
+    )
+    total_records = await db.fetch_val(total_records_query)
+
+    query = base_query.add_columns(
+        func.array_agg(Trove.owner_id).label("troves_affected"),
+        func.count(Trove.id).label("troves_affected_count"),
+    ).group_by(Redemption.id)
 
     if order.redeemer_filter:
         query = query.where(
-            Redemption.redeemer_id.like(f"%{order.redeemer_filter}%")
+            Redemption.redeemer_id.ilike(f"%{order.redeemer_filter}%")
         )
 
     if order.order_by == OrderBy.troves_affected_count.value:
-        if order.desc:
-            query = query.order_by(desc("troves_affected_count"))
-        else:
-            query = query.order_by(("troves_affected_count"))
+        query = query.order_by(
+            desc("troves_affected_count")
+            if order.desc
+            else "troves_affected_count"
+        )
     else:
-        if order.desc:
-            query = query.order_by(desc(getattr(Redemption, order.order_by)))  # type: ignore
-        else:
-            query = query.order_by((getattr(Redemption, order.order_by)))  # type: ignore
+        query = query.order_by(
+            desc(getattr(Redemption, order.order_by))  # type: ignore
+            if order.desc
+            else getattr(Redemption, order.order_by)  # type: ignore
+        )
 
     query = query.limit(pagination.items).offset(
         (pagination.page - 1) * pagination.items
     )
-
     results = await db.fetch_all(query)
 
     redemptions = [
@@ -126,4 +137,15 @@ async def search_redemptions(
         for result in results
     ]
 
-    return ListRedemptionResponse(redemptions=redemptions)
+    total_pages = (total_records + pagination.items - 1) // pagination.items
+
+    pagination_response = PaginationReponse(
+        total_records=total_records,
+        total_pages=total_pages,
+        items=pagination.items,
+        page=pagination.page,
+    )
+
+    return ListRedemptionResponse(
+        pagination=pagination_response, redemptions=redemptions
+    )

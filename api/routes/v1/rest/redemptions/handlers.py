@@ -54,7 +54,7 @@ async def get_redemption_stats(
     "/{chain}/{manager}",
     response_model=ListRedemptionResponse,
     **get_router_method_settings(
-        BaseMethodDescription(summary="Get all redemptions")
+        BaseMethodDescription(summary="Get all redemptions for a manager")
     ),
 )
 async def get_all_redemptions(

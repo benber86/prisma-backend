@@ -28,6 +28,13 @@ class Pagination(BaseModel):
     page: int = 1
 
 
+class PaginationReponse(BaseModel):
+    total_records: int
+    total_pages: int
+    items: int
+    page: int
+
+
 class DecimalTimeSeries(BaseModel):
     value: float
     timestamp: int

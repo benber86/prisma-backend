@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from api.models.common import GroupBy, Period
+from api.models.common import GroupBy, PaginationReponse, Period
 
 
 class FilterSet(BaseModel):
@@ -40,6 +40,7 @@ class RedemptionDescription(BaseModel):
 
 
 class ListRedemptionResponse(BaseModel):
+    pagination: PaginationReponse
     redemptions: list[RedemptionDescription]
 
 
@@ -55,6 +56,7 @@ class OrderFilter(BaseModel):
     order_by: OrderBy = OrderBy.block_timestamp
     desc: bool = True
     redeemer_filter: str | None
+    trove_filter: str | None
 
     class Config:
         use_enum_values = True
