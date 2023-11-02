@@ -76,3 +76,22 @@ async def get_all_redemptions(
     return await (
         search_redemptions(CHAINS[chain], manager_id, pagination, order)
     )
+
+
+@router.get(
+    "/{chain}",
+    response_model=ListRedemptionResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(summary="Get all redemptions for a chain")
+    ),
+)
+async def get_all_chain_redemptions(
+    chain: str,
+    pagination: Pagination = Depends(),
+    order: OrderFilter = Depends(),
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (search_redemptions(CHAINS[chain], None, pagination, order))

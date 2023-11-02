@@ -1,4 +1,4 @@
-from sqlalchemy import desc, distinct, func, select
+from sqlalchemy import and_, desc, distinct, func, select
 from web3 import Web3
 
 from api.models.common import GroupBy, Pagination, PaginationReponse, Period
@@ -60,16 +60,22 @@ async def get_aggregated_stats(
 
 
 async def search_redemptions(
-    chain_id: int, manager_id: int, pagination: Pagination, order: OrderFilter
+    chain_id: int,
+    manager_id: int | None,
+    pagination: Pagination,
+    order: OrderFilter,
 ) -> ListRedemptionResponse:
+
+    conditions = [Redemption.chain_id == chain_id]
+
+    if manager_id is not None:
+        conditions.append(Trove.manager_id == manager_id)
+
     base_query = (
         select(Redemption)
         .outerjoin(TroveSnapshot, TroveSnapshot.redemption_id == Redemption.id)
         .outerjoin(Trove, TroveSnapshot.trove_id == Trove.id)
-        .where(
-            (Redemption.chain_id == chain_id)
-            & (Trove.manager_id == manager_id)
-        )
+        .where(and_(*conditions))
     )
 
     if order.trove_filter:
