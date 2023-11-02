@@ -51,8 +51,8 @@ async def get_historical_collateral_ratios(
         select(
             Collateral.symbol,
             rounded_timestamp.label("rounded_date"),
-            func.avg(TroveManagerSnapshot.collateral_ratio).label(
-                "avg_collateral_ratio"
+            func.max(TroveManagerSnapshot.collateral_ratio).label(
+                "max_collateral_ratio"
             ),
         )
         .join(
@@ -76,10 +76,10 @@ async def get_historical_collateral_ratios(
     for r in results:
         if r.symbol not in markets_data:
             markets_data[r.symbol] = []
-        if float(r.avg_collateral_ratio) == 0:
+        if float(r.max_collateral_ratio) == 0:
             continue
         data_point = DecimalTimeSeries(
-            value=float(r.avg_collateral_ratio), timestamp=r.rounded_date
+            value=float(r.max_collateral_ratio), timestamp=r.rounded_date
         )
         markets_data[r.symbol].append(data_point)
 
@@ -318,8 +318,8 @@ async def get_historical_collateral_usd(
         select(
             Collateral.symbol,
             rounded_timestamp.label("rounded_date"),
-            func.avg(TroveManagerSnapshot.total_collateral_usd).label(
-                "avg_collateral_usd"
+            func.max(TroveManagerSnapshot.total_collateral_usd).label(
+                "max_collateral_usd"
             ),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
@@ -338,7 +338,7 @@ async def get_historical_collateral_usd(
 
     df = pd.DataFrame(trove_data_dict)
     df_pivot = df.pivot(
-        index="rounded_date", columns="symbol", values="avg_collateral_usd"
+        index="rounded_date", columns="symbol", values="max_collateral_usd"
     )
     df_pivot.ffill(inplace=True)
     df_pivot.fillna(0, inplace=True)
