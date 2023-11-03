@@ -25,6 +25,7 @@ class AggregateRedemptionResponse(BaseModel):
 
 class RedemptionDescription(BaseModel):
     redeemer: str
+    vault: str
     attempted_debt_amount: float
     actual_debt_amount: float
     collateral_sent: float
@@ -46,6 +47,7 @@ class ListRedemptionResponse(BaseModel):
 
 class OrderBy(Enum):
     redeemer = "redeemer"
+    vault = "vault"
     collateral_sent = "collateral_sent"
     actual_debt_amount = "actual_debt_amount"
     troves_affected_count = "troves_affected_count"

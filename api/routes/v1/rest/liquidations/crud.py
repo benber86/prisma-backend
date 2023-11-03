@@ -1,7 +1,7 @@
-from sqlalchemy import and_, desc, distinct, func, select
+from sqlalchemy import and_, desc, func, select
 from web3 import Web3
 
-from api.models.common import GroupBy, Pagination, PaginationReponse, Period
+from api.models.common import Pagination, PaginationReponse
 from api.routes.utils.time import apply_period
 from api.routes.v1.rest.liquidations.models import (
     AggregateLiquidation,
@@ -13,7 +13,12 @@ from api.routes.v1.rest.liquidations.models import (
     OrderFilter,
 )
 from database.engine import db
-from database.models.troves import Liquidation, Trove, TroveSnapshot
+from database.models.troves import (
+    Liquidation,
+    Trove,
+    TroveManager,
+    TroveSnapshot,
+)
 
 
 async def get_aggregated_liquidation_stats(
@@ -84,6 +89,7 @@ async def search_liquidations(
             TroveSnapshot, TroveSnapshot.liquidation_id == Liquidation.id
         )
         .outerjoin(Trove, TroveSnapshot.trove_id == Trove.id)
+        .outerjoin(TroveManager, Trove.manager_id == TroveManager.id)
         .where(and_(*conditions))
     )
 
@@ -99,9 +105,10 @@ async def search_liquidations(
     total_records = await db.fetch_val(total_records_query)
 
     query = base_query.add_columns(
+        TroveManager.address.label("vault"),
         func.array_agg(Trove.owner_id).label("troves_affected"),
         func.count(Trove.id).label("troves_affected_count"),
-    ).group_by(Liquidation.id)
+    ).group_by(Liquidation.id, TroveManager.address)
 
     if order.liquidator_filter:
         query = query.where(
@@ -114,6 +121,8 @@ async def search_liquidations(
             if order.desc
             else "troves_affected_count"
         )
+    elif order.order_by == OrderBy.vault.value:
+        query = query.order_by(desc("vault") if order.desc else "vault")
     else:
         query = query.order_by(
             desc(getattr(Liquidation, order.order_by))  # type: ignore
@@ -129,6 +138,7 @@ async def search_liquidations(
     liquidations = [
         LiquidationDescription(
             liquidator=Web3.to_checksum_address(result.liquidator_id),
+            vault=Web3.to_checksum_address(result.vault),
             liquidated_debt=float(result.liquidated_debt),
             liquidated_collateral=float(result.liquidated_collateral),
             liquidated_collateral_usd=float(result.liquidated_collateral_usd),
@@ -158,5 +168,5 @@ async def search_liquidations(
     )
 
     return ListLiquidationResponse(
-        pagination=pagination_response, redemptions=liquidations
+        pagination=pagination_response, liquidations=liquidations
     )

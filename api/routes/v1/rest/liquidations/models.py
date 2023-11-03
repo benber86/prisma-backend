@@ -25,6 +25,7 @@ class AggregateLiquidationResponse(BaseModel):
 
 class LiquidationDescription(BaseModel):
     liquidator: str
+    vault: str
     liquidated_debt: float
     liquidated_collateral: float
     liquidated_collateral_usd: float
@@ -44,6 +45,7 @@ class ListLiquidationResponse(BaseModel):
 
 class OrderBy(Enum):
     liquidator = "liquidator"
+    vault = "vault"
     liquidated_debt = "liquidated_debt"
     liquidated_collateral = "liquidated_collateral"
     troves_affected_count = "troves_affected_count"

@@ -1,4 +1,4 @@
-from sqlalchemy import and_, desc, distinct, func, select
+from sqlalchemy import and_, desc, func, select
 from web3 import Web3
 
 from api.models.common import GroupBy, Pagination, PaginationReponse, Period
@@ -12,7 +12,12 @@ from api.routes.v1.rest.redemptions.models import (
     RedemptionDescription,
 )
 from database.engine import db
-from database.models.troves import Redemption, Trove, TroveSnapshot
+from database.models.troves import (
+    Redemption,
+    Trove,
+    TroveManager,
+    TroveSnapshot,
+)
 
 
 async def get_aggregated_stats(
@@ -75,6 +80,7 @@ async def search_redemptions(
         select(Redemption)
         .outerjoin(TroveSnapshot, TroveSnapshot.redemption_id == Redemption.id)
         .outerjoin(Trove, TroveSnapshot.trove_id == Trove.id)
+        .outerjoin(TroveManager, Trove.manager_id == TroveManager.id)
         .where(and_(*conditions))
     )
 
@@ -90,9 +96,10 @@ async def search_redemptions(
     total_records = await db.fetch_val(total_records_query)
 
     query = base_query.add_columns(
+        TroveManager.address.label("vault"),
         func.array_agg(Trove.owner_id).label("troves_affected"),
         func.count(Trove.id).label("troves_affected_count"),
-    ).group_by(Redemption.id)
+    ).group_by(Redemption.id, TroveManager.address)
 
     if order.redeemer_filter:
         query = query.where(
@@ -105,6 +112,8 @@ async def search_redemptions(
             if order.desc
             else "troves_affected_count"
         )
+    elif order.order_by == OrderBy.vault.value:
+        query = query.order_by(desc("vault") if order.desc else "vault")
     else:
         query = query.order_by(
             desc(getattr(Redemption, order.order_by))  # type: ignore
@@ -120,6 +129,7 @@ async def search_redemptions(
     redemptions = [
         RedemptionDescription(
             redeemer=Web3.to_checksum_address(result.redeemer_id),
+            vault=Web3.to_checksum_address(result.vault),
             attempted_debt_amount=float(result.attempted_debt_amount),
             actual_debt_amount=float(result.actual_debt_amount),
             collateral_sent=float(result.collateral_sent),
