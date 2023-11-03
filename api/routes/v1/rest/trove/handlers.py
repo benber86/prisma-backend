@@ -13,7 +13,7 @@ from api.routes.v1.rest.trove.models import (
     FilterSet,
     RatioPosition,
     TroveEntry,
-    TroveEntryReponse,
+    TroveEntryResponse,
     TroveHistoryResponse,
     TroveSnapshotsResponse,
 )
@@ -25,7 +25,7 @@ router = APIRouter()
 
 @router.get(
     "/{chain}/{manager}/troves",
-    response_model=TroveEntryReponse,
+    response_model=TroveEntryResponse,
     **get_router_method_settings(
         BaseMethodDescription(summary="List or search for troves")
     ),

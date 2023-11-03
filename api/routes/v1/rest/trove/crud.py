@@ -9,7 +9,7 @@ from api.routes.v1.rest.trove.models import (
     RatioPosition,
     Status,
     TroveEntry,
-    TroveEntryReponse,
+    TroveEntryResponse,
     TroveHistoryData,
     TroveHistoryResponse,
     TroveSnapshotData,
@@ -45,7 +45,7 @@ def _map_trove_to_entry(trove, created_at, last_update, collateral_ratio):
 
 async def search_for_troves(
     manager_id: int, pagination: Pagination, filter_set: FilterSet
-) -> TroveEntryReponse | None:
+) -> TroveEntryResponse | None:
     first_snapshot = aliased(TroveSnapshot)
     last_snapshot = aliased(TroveSnapshot)
 
@@ -123,7 +123,9 @@ async def search_for_troves(
 
     result = await db.fetch_all(query)
     if not result:
-        return None
+        return TroveEntryResponse(
+            page=page, total_entries=total_entries, troves=[]
+        )
 
     trove_entries = [
         _map_trove_to_entry(
@@ -139,7 +141,7 @@ async def search_for_troves(
         )
         for row in result
     ]
-    return TroveEntryReponse(
+    return TroveEntryResponse(
         page=page, total_entries=total_entries, troves=trove_entries
     )
 

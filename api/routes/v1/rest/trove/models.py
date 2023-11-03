@@ -29,7 +29,7 @@ class TroveEntry(BaseModel):
     last_update: int
 
 
-class TroveEntryReponse(BaseModel):
+class TroveEntryResponse(BaseModel):
     page: int
     total_entries: int
     troves: list[TroveEntry]
