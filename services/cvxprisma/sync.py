@@ -11,6 +11,7 @@ from database.utils import upsert_query
 from services.celery import celery
 from services.cvxprisma.events import update_events
 from services.cvxprisma.models import StakingData
+from services.cvxprisma.rewards import update_payouts
 from services.cvxprisma.snapshots import update_snapshots
 from services.cvxprisma.staking import update_staking
 from utils.const.chains import ethereum
@@ -86,8 +87,12 @@ async def sync_cvx_prisma_from_subgraph(
             new_data.deposit_count,
         )
     if new_data.payout_count > previous_data.payout_count:
-        pass
-        # await update_payouts(chain, new_data.id, previous_data.payout_count, new_data.payout_count)
+        await update_payouts(
+            chain,
+            new_data.id,
+            previous_data.payout_count,
+            new_data.payout_count,
+        )
     if new_data.snapshot_count > previous_data.snapshot_count:
         await update_snapshots(
             chain,
