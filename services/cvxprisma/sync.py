@@ -11,6 +11,7 @@ from database.utils import upsert_query
 from services.celery import celery
 from services.cvxprisma.events import update_events
 from services.cvxprisma.models import StakingData
+from services.cvxprisma.snapshots import update_snapshots
 from services.cvxprisma.staking import update_staking
 from utils.const.chains import ethereum
 
@@ -27,8 +28,8 @@ logger.addHandler(handler)
 
 
 @celery.task
-def back_populate_chain(chain: str, chain_id: int):
-    asyncio.run(wrap_dbs(sync_from_subgraph)(chain, chain_id))
+def back_populate_cvxprisma(chain: str, chain_id: int):
+    asyncio.run(wrap_dbs(sync_cvx_prisma_from_subgraph)(chain, chain_id))
 
 
 async def get_staking_data(chain_id: int) -> StakingData | None:
@@ -53,7 +54,7 @@ async def get_staking_data(chain_id: int) -> StakingData | None:
     return None
 
 
-async def sync_from_subgraph(
+async def sync_cvx_prisma_from_subgraph(
     chain: str = ethereum.CHAIN_NAME, chain_id: int = ethereum.CHAIN_ID
 ):
     await db.execute(upsert_query(Chain, {"id": chain_id}, {"name": chain}))
@@ -88,5 +89,9 @@ async def sync_from_subgraph(
         pass
         # await update_payouts(chain, new_data.id, previous_data.payout_count, new_data.payout_count)
     if new_data.snapshot_count > previous_data.snapshot_count:
-        pass
-        # await update_snapshots(chain, new_data.id, previous_data.snapshot_count, new_data.snapshot_count)
+        await update_snapshots(
+            chain,
+            new_data.id,
+            previous_data.snapshot_count,
+            new_data.snapshot_count,
+        )

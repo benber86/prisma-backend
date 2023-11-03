@@ -1,7 +1,7 @@
 from enum import Enum
 
 import sqlalchemy as sa
-from sqlalchemy import Column, ForeignKey, Index, Numeric, String
+from sqlalchemy import Column, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
@@ -41,6 +41,8 @@ class StakeEvent(Base):
     user_id = Column(ForeignKey("users.id"))
     operation = Column(sa.Enum(StakeOperation))
     amount = Column(Numeric)
+    amount_usd = Column(Numeric)
+    index = Column(Integer)
 
     block_number = Column(Numeric)
     block_timestamp = Column(Numeric)
@@ -51,9 +53,10 @@ class StakeEvent(Base):
 
     __table_args__ = (
         Index(
-            "idx_stake_event__staking_id__user_id",
+            "idx_stake_event__staking_id__user_id__index",
             staking_id,
             user_id,
+            index,
             unique=True,
         ),
     )
@@ -68,6 +71,7 @@ class RewardPaid(Base):
     token_symbol = Column(String)
     amount = Column(Numeric)
     amount_usd = Column(Numeric)
+    index = Column(Integer)
 
     block_number = Column(Numeric)
     block_timestamp = Column(Numeric)
@@ -78,15 +82,37 @@ class RewardPaid(Base):
 
     __table_args__ = (
         Index(
-            "idx_reward_paid__staking_id__user_id",
+            "idx_reward_paid__staking_id__user_id__index",
             staking_id,
             user_id,
+            index,
             unique=True,
         ),
     )
 
 
-class StakingSnapsht(Base):
+class StakingBalance(Base):
+    __tablename__ = "staking_balance"
+    staking_id = Column(ForeignKey("cvx_prisma_staking.id"))
+    user_id = Column(ForeignKey("users.id"))
+    stake_size = Column(Numeric)
+    timestamp = Column(Numeric)
+
+    staking = relationship("CvxPrismaStaking")
+    user = relationship("User")
+
+    __table_args__ = (
+        Index(
+            "idx_staking_balance__staking_id__user_id__timestamp",
+            staking_id,
+            user_id,
+            timestamp,
+            unique=True,
+        ),
+    )
+
+
+class StakingSnapshot(Base):
     __tablename__ = "staking_snapshot"
     staking_id = Column(ForeignKey("cvx_prisma_staking.id"))
 
@@ -100,7 +126,7 @@ class StakingSnapsht(Base):
     staking = relationship("CvxPrismaStaking")
     __table_args__ = (
         Index(
-            "idx_reward_paid__staking_id__timestamp",
+            "idx_staking_snapshot__staking_id__timestamp",
             staking_id,
             timestamp,
             unique=True,
