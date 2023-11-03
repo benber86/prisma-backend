@@ -7,6 +7,7 @@ from alembic import context
 from database.base import Base
 from database.models.common import *
 from database.models.troves import *
+from database.models.cvxprisma import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

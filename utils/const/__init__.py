@@ -14,6 +14,10 @@ CURVE_SUBGRAPHS: dict[str, str] = {
     ethereum.CHAIN_NAME: ethereum.CURVE_SUBGRAPH
 }
 
+CVXPRISMA_SUBGRAPHS: dict[str, str] = {
+    ethereum.CHAIN_NAME: ethereum.CVXPRISMA_SUBGRAPH
+}
+
 PROVIDERS: dict[str, web3.HTTPProvider] = {
     ethereum.CHAIN_NAME: ethereum.PROVIDER
 }

@@ -54,10 +54,23 @@ IMPACT_SCHEDULE = {
     for chain, _ in CHAINS.items()
 }
 
+CVXPRISMA_SYNC_SCHEDULE = {
+    f"sync-task-{chain}": {
+        "task": "services.cvxprisma.back_populate.back_populate_chain",
+        "schedule": timedelta(seconds=60),
+        "args": (
+            chain,
+            chain_id,
+        ),
+    }
+    for chain, chain_id in CHAINS.items()
+}
+
 CELERY_BEAT_SCHEDULE = {
     **SUBGRAPH_SYNC_SCHEDULE,
     **PRICE_SYNC_SCHEDULE,
     **DEPTH_SCHEDULE,
     **HOLDERS_SCHEDULE,
     **IMPACT_SCHEDULE,
+    **CVXPRISMA_SYNC_SCHEDULE,
 }

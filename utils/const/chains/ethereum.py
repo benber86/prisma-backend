@@ -17,6 +17,9 @@ LABELS = {
 CURVE_SUBGRAPH = (
     "https://api.thegraph.com/subgraphs/name/convex-community/volume-mainnet"
 )
+CVXPRISMA_SUBGRAPH = (
+    "https://api.thegraph.com/subgraphs/name/convex-community/cvxprisma"
+)
 PROVIDER = Web3.HTTPProvider(
     f"https://eth-mainnet.g.alchemy.com/v2/{settings.ALCHEMY_API_KEY}",
     request_kwargs={"timeout": settings.WEB3_REQUEST_TIMEOUT},

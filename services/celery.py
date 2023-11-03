@@ -14,6 +14,7 @@ celery = Celery(
 celery.conf.update(
     imports=[
         "services.sync.back_populate",
+        "services.cvxprisma.back_populate",
         "services.prices.populate_mkusd",
         "services.prices.mkusd_holders",
         "services.prices.liquidity_depth",
