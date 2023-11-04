@@ -9,6 +9,7 @@ from api.routes.v1.rest.redemptions.handlers import router as redemption_router
 from api.routes.v1.rest.stability_pool.handlers import (
     router as stability_pool_router,
 )
+from api.routes.v1.rest.staking.handlers import router as staking_router
 from api.routes.v1.rest.trove.handlers import router as trove_router
 from api.routes.v1.rest.trove_managers.handlers import (
     router as trove_manager_router,
@@ -51,6 +52,11 @@ http_routers = [
         "router": liquidation_router,
         "tags": ["liquidations"],
         "prefix": "/liquidations",
+    },
+    {
+        "router": staking_router,
+        "tags": ["staking"],
+        "prefix": "/staking",
     },
 ]
 

@@ -19,10 +19,10 @@ EVENT_QUERY = """
   %s(first:1000 where:{index_gte: %d index_lt: %d}) {
     user {
       id
-      stakeSize
     }
   amount
   amountUsd
+  userStakeSize
   index
   blockNumber
   blockTimestamp
@@ -105,7 +105,7 @@ async def update_events(
                 "user_id": event["user"]["id"],
                 "timestamp": event["blockTimestamp"],
             }
-            insert_balance_data = {"stake_size": event["user"]["stakeSize"]}
+            insert_balance_data = {"stake_size": event["userStakeSize"]}
 
             query = upsert_query(StakingBalance, indexes, insert_balance_data)
             await db.execute(query)

@@ -187,6 +187,7 @@ async def get_stable_deposits_and_withdrawals(
     )
 
 
+@cached(ttl=300, cache=Cache.MEMORY)
 async def get_deposit_histogram(chain_id: int) -> DistributionResponse:
     subquery = (
         select(
