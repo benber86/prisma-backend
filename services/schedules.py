@@ -55,7 +55,7 @@ IMPACT_SCHEDULE = {
 }
 
 CVXPRISMA_SYNC_SCHEDULE = {
-    f"sync-task-{chain}": {
+    f"sync-cvxprisma-{chain}": {
         "task": "services.cvxprisma.sync.back_populate_cvxprisma",
         "schedule": timedelta(seconds=60),
         "args": (

@@ -103,7 +103,7 @@ async def update_events(
             indexes = {
                 "staking_id": staking_id,
                 "user_id": event["user"]["id"],
-                "timestamp": event["block_timestamp"],
+                "timestamp": event["blockTimestamp"],
             }
             insert_balance_data = {"stake_size": event["user"]["stakeSize"]}
 

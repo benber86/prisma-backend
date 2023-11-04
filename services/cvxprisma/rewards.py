@@ -27,6 +27,9 @@ PAYOUT_QUERY = """
   }
   amount
   amountUsd
+  blockNumber
+  blockTimestamp
+  transactionHash
   }
 }
 """
