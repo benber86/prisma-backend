@@ -95,7 +95,8 @@ async def _update_parameters(
             / 10**18,
             "max_system_debt": Decimal(parameters["maxSystemDebt"]) / 10**18,
             "mcr": Decimal(parameters["mcr"]) / 10**18,
-            "interest_rate": Decimal(parameters["interestRate"]) / 10**18,
+            "interest_rate": Decimal(parameters["interestRate"])
+            / 10**4,  # in bps
             "block_number": parameters["blockTimestamp"],
             "transaction_hash": parameters["transactionHash"],
         }
