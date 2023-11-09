@@ -28,6 +28,7 @@ class User(Base):
     vote_count = Column(Integer)
     lock_balance = Column(Numeric)
     frozen = Column(Boolean)
+    label = Column(String)
     stabilityPoolOperations = relationship(
         "StabilityPoolOperation", back_populates="user"
     )
