@@ -34,6 +34,25 @@ class User(Base):
     )
 
 
+class RevenueSnapshot(Base):
+    __tablename__ = "prisma_revenue"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    unlock_penalty_revenue_usd = Column(Numeric)
+    borrowing_fees_revenue_usd = Column(Numeric)
+    redemption_fees_revenue_usd = Column(Numeric)
+    timestamp = Column(Integer)
+    chain = relationship("Chain")
+
+    __table_args__ = (
+        Index(
+            "idx_prisma_revenue__chain_id__timestamp",
+            chain_id,
+            timestamp,
+            unique=True,
+        ),
+    )
+
+
 class StableCoinPrice(Base):
     __tablename__ = "mkusd_price"
     chain_id = Column(ForeignKey("chains.id"), nullable=False)
@@ -43,7 +62,7 @@ class StableCoinPrice(Base):
 
     __table_args__ = (
         Index(
-            "idx_collaterals__chain_id__timestamp",
+            "idx_mkusd_price__chain_id__timestamp",
             chain_id,
             timestamp,
             unique=True,

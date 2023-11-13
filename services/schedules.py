@@ -54,6 +54,18 @@ IMPACT_SCHEDULE = {
     for chain, _ in CHAINS.items()
 }
 
+REVENUE_SCHEDULE = {
+    f"update-revenue-{chain}": {
+        "task": "services.sync.revenue.update_revenue_snapshots",
+        "schedule": timedelta(minutes=4),
+        "args": (
+            chain,
+            chain_id,
+        ),
+    }
+    for chain, chain_id in CHAINS.items()
+}
+
 CVXPRISMA_SYNC_SCHEDULE = {
     f"sync-cvxprisma-{chain}": {
         "task": "services.cvxprisma.sync.back_populate_cvxprisma",
@@ -73,4 +85,5 @@ CELERY_BEAT_SCHEDULE = {
     **HOLDERS_SCHEDULE,
     **IMPACT_SCHEDULE,
     **CVXPRISMA_SYNC_SCHEDULE,
+    **REVENUE_SCHEDULE,
 }

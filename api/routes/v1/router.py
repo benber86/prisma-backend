@@ -6,6 +6,7 @@ from api.routes.v1.rest.liquidations.handlers import (
 )
 from api.routes.v1.rest.mkusd.handlers import router as stablecoin_router
 from api.routes.v1.rest.redemptions.handlers import router as redemption_router
+from api.routes.v1.rest.revenue.handlers import router as revenue_router
 from api.routes.v1.rest.stability_pool.handlers import (
     router as stability_pool_router,
 )
@@ -63,6 +64,11 @@ http_routers = [
         "router": staking_router2,
         "tags": ["staking"],
         "prefix": "/staking",
+    },
+    {
+        "router": revenue_router,
+        "tags": ["revenue"],
+        "prefix": "/revenue",
     },
 ]
 

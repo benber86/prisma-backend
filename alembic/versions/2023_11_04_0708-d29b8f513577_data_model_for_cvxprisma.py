@@ -111,7 +111,6 @@ def downgrade() -> None:
     op.drop_table('reward_paid')
     op.drop_index('idx_cvx_prisma_staking__chain_id__id', table_name='cvx_prisma_staking')
     op.drop_table('cvx_prisma_staking')
-    op.drop_column('users', 'label')
 
     bind = op.get_bind()
     if bind.dialect.name == 'postgresql':
