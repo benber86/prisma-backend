@@ -16,7 +16,7 @@ logger = logging.getLogger()
 
 EVENT_QUERY = """
 {
-  %s(first:1000 where:{index_gte: %d index_lt: %d}) {
+  %s(first:1000 where:{stakingContract: "%s" index_gte: %d index_lt: %d}) {
     user {
       id
     }
@@ -54,6 +54,7 @@ async def update_events(
     for index in range(from_index, to_index, 1000):
         query = EVENT_QUERY % (
             label,
+            staking_id,
             index,
             min(to_index + 1, from_index + 1000),
         )

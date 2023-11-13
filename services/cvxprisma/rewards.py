@@ -2,11 +2,7 @@ import logging
 
 from database.engine import db
 from database.models.common import User
-from database.models.cvxprisma import (
-    CvxPrismaStaking,
-    RewardPaid,
-    StakingBalance,
-)
+from database.models.cvxprisma import CvxPrismaStaking, RewardPaid
 from database.utils import insert_ignore_query, upsert_query
 from services.cvxprisma.utils import get_cvxprisma_snapshot_query_setup
 from utils.const import CHAINS
@@ -16,7 +12,7 @@ logger = logging.getLogger()
 
 PAYOUT_QUERY = """
 {
-  rewardPaids(first:1000 where:{index_gte: %d index_lt: %d}) {
+  rewardPaids(first:1000 where:{stakingContract: "%s" index_gte: %d index_lt: %d}) {
   user {
     id
   }
@@ -51,6 +47,7 @@ async def update_payouts(
 
     for index in range(from_index, to_index, 1000):
         query = PAYOUT_QUERY % (
+            staking_id,
             index,
             min(to_index + 1, from_index + 1000),
         )
