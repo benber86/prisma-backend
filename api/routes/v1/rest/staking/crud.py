@@ -28,11 +28,12 @@ from database.models.cvxprisma import (
     StakingBalance,
     StakingSnapshot,
 )
+from utils.const import CVXPRISMA_STAKING
 
 
 @cached(ttl=60, cache=Cache.MEMORY)
 async def get_aggregated_flow(
-    filter_set: FilterSet,
+    filter_set: FilterSet, staking_contract: str = CVXPRISMA_STAKING
 ) -> AggregateStakingFlowResponse:
     start_timestamp = apply_period(filter_set.period)
 
@@ -48,7 +49,14 @@ async def get_aggregated_flow(
             func.count().label("count"),
             func.extract("epoch", rounded_timestamp).label("timestamp"),
         )
-        .where(StakeEvent.block_timestamp >= start_timestamp)
+        .where(
+            and_(
+                StakeEvent.block_timestamp >= start_timestamp,
+                StakeEvent.staking_id.ilike(
+                    staking_contract
+                ),  # Filter by staking_contract
+            )
+        )
         .group_by(StakeEvent.operation, rounded_timestamp)
         .order_by(rounded_timestamp)
     )
@@ -75,7 +83,9 @@ async def get_aggregated_flow(
 
 
 @cached(ttl=60, cache=Cache.MEMORY)
-async def get_aggregated_tvl(filter_set: FilterSet) -> StakingTvlResponse:
+async def get_aggregated_tvl(
+    filter_set: FilterSet, staking_contract: str = CVXPRISMA_STAKING
+) -> StakingTvlResponse:
     start_timestamp = apply_period(filter_set.period)
 
     rounded_timestamp = func.date_trunc(
@@ -89,7 +99,14 @@ async def get_aggregated_tvl(filter_set: FilterSet) -> StakingTvlResponse:
                 func.extract("epoch", rounded_timestamp).label("timestamp"),
             ]
         )
-        .where(StakingSnapshot.timestamp >= start_timestamp)
+        .where(
+            and_(
+                StakingSnapshot.timestamp >= start_timestamp,
+                StakingSnapshot.staking_id.ilike(
+                    staking_contract
+                ),  # Filter by staking_contract
+            )
+        )
         .group_by(rounded_timestamp)
         .order_by(rounded_timestamp)
     )
@@ -108,12 +125,19 @@ async def get_aggregated_tvl(filter_set: FilterSet) -> StakingTvlResponse:
 
 @cached(ttl=60, cache=Cache.MEMORY)
 async def get_snapshots(
-    filter_set: PeriodFilterSet,
+    filter_set: PeriodFilterSet, staking_contract: str = CVXPRISMA_STAKING
 ) -> StakingSnapshotsResponse:
     start_timestamp = apply_period(filter_set.period)
     query = (
         select(StakingSnapshot)
-        .where(StakingSnapshot.timestamp >= start_timestamp)
+        .where(
+            and_(
+                StakingSnapshot.timestamp >= start_timestamp,
+                StakingSnapshot.staking_id.ilike(
+                    staking_contract
+                ),  # Filter by staking_contract
+            )
+        )
         .order_by(StakingSnapshot.timestamp)
     )
 
@@ -134,11 +158,16 @@ async def get_snapshots(
     return StakingSnapshotsResponse(Snapshots=snapshots)
 
 
-async def _get_stake_size(user_id: str) -> list[SingleOperation]:
+async def _get_stake_size(
+    user_id: str, staking_contract: str
+) -> list[SingleOperation]:
     # Find the earliest record of the user's stake to limit the price data query
     earliest_stake_record = await db.fetch_one(
         select([func.min(StakingBalance.timestamp)]).where(
-            StakingBalance.user_id.ilike(user_id)
+            and_(
+                StakingBalance.user_id.ilike(user_id),
+                StakingBalance.staking_id.ilike(staking_contract),
+            )
         )
     )
     earliest_date = earliest_stake_record[0]
@@ -148,7 +177,12 @@ async def _get_stake_size(user_id: str) -> list[SingleOperation]:
     # Retrieve user's staking balances
     user_balances = await db.fetch_all(
         select([StakingBalance.stake_size, StakingBalance.timestamp])
-        .where(StakingBalance.user_id.ilike(user_id))
+        .where(
+            and_(
+                StakingBalance.user_id.ilike(user_id),
+                StakingBalance.staking_id.ilike(staking_contract),
+            )
+        )
         .order_by(StakingBalance.timestamp)
     )
 
@@ -162,7 +196,14 @@ async def _get_stake_size(user_id: str) -> list[SingleOperation]:
                 func.max(StakingSnapshot.timestamp).label("latest_timestamp"),
             ]
         )
-        .where(StakingSnapshot.timestamp >= earliest_date)
+        .where(
+            and_(
+                StakingSnapshot.timestamp >= earliest_date,
+                StakingSnapshot.staking_id.ilike(
+                    staking_contract
+                ),  # Filter by staking_contract
+            )
+        )
         .group_by("truncated_date")
         .subquery()
     )
@@ -234,11 +275,18 @@ async def _get_stake_size(user_id: str) -> list[SingleOperation]:
 
 
 @cached(ttl=60, cache=Cache.MEMORY)
-async def get_user_details(user_id: str) -> UserDetails:
+async def get_user_details(
+    user_id: str, staking_contract: str = CVXPRISMA_STAKING
+) -> UserDetails:
     # Fetch claims
     rewards_query = (
         select(RewardPaid)
-        .where(RewardPaid.user_id.ilike(user_id))
+        .where(
+            and_(
+                RewardPaid.user_id.ilike(user_id),
+                RewardPaid.staking_id.ilike(staking_contract),
+            )
+        )
         .order_by(RewardPaid.block_timestamp)
     )
     rewards_results = await db.fetch_all(rewards_query)
@@ -257,7 +305,12 @@ async def get_user_details(user_id: str) -> UserDetails:
     # Fetch withdrawals and deposits
     stake_events_query = (
         select(StakeEvent)
-        .where(StakeEvent.user_id.ilike(user_id))
+        .where(
+            and_(
+                StakeEvent.user_id.ilike(user_id),
+                StakeEvent.staking_id.ilike(staking_contract),
+            )
+        )
         .order_by(StakeEvent.block_timestamp)
     )
     stake_events_results = await db.fetch_all(stake_events_query)
@@ -281,16 +334,19 @@ async def get_user_details(user_id: str) -> UserDetails:
         claims=claims,
         withdrawals=withdrawals,
         deposits=deposits,
-        stake_size=await _get_stake_size(user_id),
+        stake_size=await _get_stake_size(user_id, staking_contract),
     )
 
     return user_details
 
 
 @cached(ttl=60, cache=Cache.MEMORY)
-async def get_staking_balance_histogram() -> DistributionResponse:
+async def get_staking_balance_histogram(
+    staking_contract: str = CVXPRISMA_STAKING,
+) -> DistributionResponse:
     most_recent_snapshot = await db.fetch_one(
         select([StakingSnapshot.tvl, StakingSnapshot.token_balance])
+        .where(StakingSnapshot.staking_id.ilike(staking_contract))
         .order_by(StakingSnapshot.timestamp.desc())
         .limit(1)
     )
@@ -310,6 +366,7 @@ async def get_staking_balance_histogram() -> DistributionResponse:
                 func.max(StakingBalance.timestamp).label("max_timestamp"),
             ]
         )
+        .where(StakingBalance.staking_id.ilike(staking_contract))
         .group_by(StakingBalance.user_id)
         .subquery()
     )
@@ -320,6 +377,7 @@ async def get_staking_balance_histogram() -> DistributionResponse:
             StakingBalance.user_id == subquery.c.user_id,
             StakingBalance.timestamp == subquery.c.max_timestamp,
             StakingBalance.stake_size >= 0.5,
+            StakingBalance.staking_id.ilike(staking_contract),
         ),
     )
 
