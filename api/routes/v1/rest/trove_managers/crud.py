@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from aiocache import Cache, cached
-from sqlalchemy import and_, desc, distinct, func, select
+from sqlalchemy import and_, case, desc, distinct, func, select
 
 from api.models.common import (
     DecimalLabelledSeries,
@@ -227,7 +227,7 @@ async def get_health_overview(
                 ),
             ]
         )
-        .where(TroveSnapshot.trove_id.in_(open_troves))
+        .where(and_(TroveSnapshot.trove_id.in_(open_troves), Trove.debt != 0))
         .group_by(TroveSnapshot.trove_id)
         .alias()
     )
@@ -257,12 +257,13 @@ async def get_health_overview(
                     TroveSnapshot.collateral
                     * last_manager_snapshots.c.collateral_price
                 ).label("collateral_value"),
-                (
-                    (
+                case(
+                    [(TroveSnapshot.debt == 0, 0)],
+                    else_=(
                         TroveSnapshot.collateral
                         * last_manager_snapshots.c.collateral_price
                     )
-                    / TroveSnapshot.debt
+                    / TroveSnapshot.debt,
                 ).label("collateral_ratio"),
             ]
         )
