@@ -12,7 +12,7 @@ logger = logging.getLogger()
 
 PAYOUT_QUERY = """
 {
-  rewardPaids(first:1000 where:{stakingContract: "%s" index_gte: %d index_lt: %d}) {
+  rewardPaids(first:1000 where:{stakingContract: "%s" index_gte: %d}) {
   user {
     id
   }
@@ -41,15 +41,14 @@ async def update_payouts(
         chain, from_index, to_index
     )
 
-    logger.info(
-        f"Updating cvxPrisma payouts from index {from_index} to {to_index}"
-    )
-
     for index in range(from_index, to_index, 1000):
         query = PAYOUT_QUERY % (
             staking_id,
             index,
-            min(to_index + 1, from_index + 1000),
+        )
+
+        logger.info(
+            f"Updating cvxPrisma payouts from index {from_index} to {to_index} - batch {index}"
         )
         payout_data = await async_grt_query(endpoint=endpoint, query=query)
         if not payout_data:

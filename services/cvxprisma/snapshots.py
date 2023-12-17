@@ -11,7 +11,7 @@ logger = logging.getLogger()
 
 SNAPSHOT_QUERY = """
 {
-  hourlySnapshots(first:1000 where:{stakingContract: "%s" index_gte: %d index_lt: %d}) {
+  hourlySnapshots(first:1000 where:{stakingContract: "%s" index_gte: %d}) {
     tokenBalance
     totalSupply
     totalApr
@@ -38,14 +38,13 @@ async def update_snapshots(
         chain, from_index, to_index
     )
 
-    logger.info(
-        f"Updating cvxPrisma snapshots from index {from_index} to {to_index}"
-    )
     for index in range(from_index, to_index, 1000):
         query = SNAPSHOT_QUERY % (
             staking_id,
             index,
-            min(to_index + 1, from_index + 1000),
+        )
+        logger.info(
+            f"Updating cvxPrisma snapshots from index {from_index} to {to_index} - batch {index}"
         )
         snapshot_data = await async_grt_query(endpoint=endpoint, query=query)
         if not snapshot_data:

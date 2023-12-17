@@ -28,7 +28,7 @@ logger = logging.getLogger()
 
 POOL_SNAPSHOTS_QUERY = """
 {
-  stabilityPoolSnapshots(first: 1000 where: {index_gte: %d index_lt: %d}) {
+  stabilityPoolSnapshots(first: 1000 where: {index_gte: %d}) {
     index
     totalDeposited
     totalCollateralWithdrawnUSD
@@ -42,7 +42,7 @@ POOL_SNAPSHOTS_QUERY = """
 
 POOL_OPERATIONS_QUERY = """
 {
-  stabilityPoolOperations(first: 1000 where: {index_gte: %d index_lt: %d}) {
+  stabilityPoolOperations(first: 1000 where: {index_gte: %d}) {
     user {
       id
       totalDeposited
@@ -88,13 +88,11 @@ async def update_pool_snapshots(
 ):
     to_index, endpoint = get_snapshot_query_setup(chain, from_index, to_index)
     pool_id = await get_stability_pool_id_by_chain_id(CHAINS[chain])
-    logger.info(
-        f"Updating pool snapshots from index {from_index} to {to_index}"
-    )
+
     for index in range(from_index, to_index, 1000):
-        query = POOL_SNAPSHOTS_QUERY % (
-            index,
-            min(to_index + 1, from_index + 1000),
+        query = POOL_SNAPSHOTS_QUERY % (index,)
+        logger.info(
+            f"Updating pool snapshots from index {from_index} to {to_index} - batch {index}"
         )
         pool_data = await async_grt_query(endpoint=endpoint, query=query)
         if not pool_data:
@@ -127,13 +125,11 @@ async def update_pool_operations(
     chain_id = CHAINS[chain]
     to_index, endpoint = get_snapshot_query_setup(chain, from_index, to_index)
     pool_id = await get_stability_pool_id_by_chain_id(CHAINS[chain])
-    logger.info(
-        f"Updating pool operations from index {from_index} to {to_index}"
-    )
+
     for index in range(from_index, to_index, 1000):
-        query = POOL_OPERATIONS_QUERY % (
-            index,
-            min(to_index + 1, from_index + 1000),
+        query = POOL_OPERATIONS_QUERY % (index,)
+        logger.info(
+            f"Updating pool operations from index {from_index} to {to_index} - batch: {index}"
         )
         pool_data = await async_grt_query(endpoint=endpoint, query=query)
         if not pool_data:

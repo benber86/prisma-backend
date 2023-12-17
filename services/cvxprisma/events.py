@@ -16,7 +16,7 @@ logger = logging.getLogger()
 
 EVENT_QUERY = """
 {
-  %s(first:1000 where:{stakingContract: "%s" index_gte: %d index_lt: %d}) {
+  %s(first:1000 where:{stakingContract: "%s" index_gte: %d}) {
     user {
       id
     }
@@ -43,9 +43,6 @@ async def update_events(
         chain, from_index, to_index
     )
 
-    logger.info(
-        f"Updating cvxPrisma withdrawals from index {from_index} to {to_index}"
-    )
     label = (
         "stakes"
         if event_type == StakeEvent.StakeOperation.stake
@@ -56,7 +53,9 @@ async def update_events(
             label,
             staking_id,
             index,
-            min(to_index + 1, from_index + 1000),
+        )
+        logger.info(
+            f"Updating cvxPrisma withdrawals from index {from_index} to {to_index} - batch {index}"
         )
         event_data = await async_grt_query(endpoint=endpoint, query=query)
         if not event_data:
