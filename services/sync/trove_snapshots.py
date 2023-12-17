@@ -30,7 +30,7 @@ logger = logging.getLogger()
 
 TROVE_SNAPSHOT_QUERY = """
 {
-  troveSnapshots(first: 1000 where: {manager: "%s" index_gte: %d index_lt: %d}){
+  troveSnapshots(first: 1000 where: {manager: "%s" index_gte: %d}){
     trove {
       owner {
         id
@@ -226,14 +226,10 @@ async def update_trove_snapshots(
     if not manager_address:
         raise Exception(f"Unable to retrieve address of manager {manager_id}")
 
-    logger.info(
-        f"Updating trove snapshots from index {from_index} to {to_index} for {manager_address}"
-    )
     for index in range(from_index, to_index, 1000):
-        query = TROVE_SNAPSHOT_QUERY % (
-            manager_address,
-            index,
-            min(to_index + 1, from_index + 1000),
+        query = TROVE_SNAPSHOT_QUERY % (manager_address, index)
+        logger.info(
+            f"Updating trove snapshots from index {from_index} to {to_index} for {manager_address} - batch {index}"
         )
         snapshot_data = await async_grt_query(endpoint=endpoint, query=query)
         if not snapshot_data:

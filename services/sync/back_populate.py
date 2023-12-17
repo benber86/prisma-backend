@@ -156,7 +156,7 @@ async def _update_manager(
                 )
             except Exception as e:
                 logger.error(
-                    f"Error updating manager snapshots: {e}, resetting snapshout count\n{traceback.format_exc()}"
+                    f"Error updating manager snapshots: {e}, resetting snapshot count\n{traceback.format_exc()}"
                 )
                 data = {
                     "snapshots_count": previous_data.trove_manager_data[
