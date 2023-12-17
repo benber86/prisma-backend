@@ -319,6 +319,7 @@ async def update_depth_charts(chain: str):
     pools = await _get_all_relevant_pools(chain)
     res: list[PoolDepth] = []
     for pool in pools:
+        logger.info(f"Getting depth chart data for pool {pool}")
         if pool.metapool:
             res += await handle_metapool(chain, pool)
         else:
