@@ -28,7 +28,7 @@ logger = logging.getLogger()
 
 POOL_SNAPSHOTS_QUERY = """
 {
-  stabilityPoolSnapshots(first: 1000 where: {index_gte: %d}) {
+  stabilityPoolSnapshots(first: 1000 where: {index_gte: %d} orderBy: index orderDirection: asc) {
     index
     totalDeposited
     totalCollateralWithdrawnUSD
@@ -42,7 +42,7 @@ POOL_SNAPSHOTS_QUERY = """
 
 POOL_OPERATIONS_QUERY = """
 {
-  stabilityPoolOperations(first: 1000 where: {index_gte: %d}) {
+  stabilityPoolOperations(first: 1000 where: {index_gte: %d}  orderBy: index orderDirection: asc) {
     user {
       id
       totalDeposited

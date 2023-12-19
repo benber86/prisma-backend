@@ -20,7 +20,7 @@ logger = logging.getLogger()
 
 TROVE_MANAGER_SNAPSHOT_QUERY = """
 {
-  troveManagerSnapshots(first: 1000 where: {manager: "%s" index_gte: %d}){
+  troveManagerSnapshots(first: 1000 where: {manager: "%s" index_gte: %d} orderBy: index orderDirection: asc){
     index
     collateralPrice
     rate

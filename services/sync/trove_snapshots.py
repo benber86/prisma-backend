@@ -30,7 +30,7 @@ logger = logging.getLogger()
 
 TROVE_SNAPSHOT_QUERY = """
 {
-  troveSnapshots(first: 1000 where: {manager: "%s" index_gte: %d}){
+  troveSnapshots(first: 1000 where: {manager: "%s" index_gte: %d} orderBy: index orderDirection: asc){
     trove {
       owner {
         id
