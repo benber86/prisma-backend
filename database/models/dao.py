@@ -10,7 +10,6 @@ from sqlalchemy import (
     Numeric,
     String,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from database.base import Base
@@ -48,9 +47,10 @@ class OwnershipProposal(Base):
 
     __table_args__ = (
         Index(
-            "idx_ownership_proposals__chain_id__id",
+            "idx_ownership_proposals__chain_id__creator_id__index",
             chain_id,
-            id,
+            creator_id,
+            index,
             unique=True,
         ),
     )
@@ -86,14 +86,17 @@ class OwnershipVote(Base):
 
 class IncentiveReceiver(Base):
     __tablename__ = "incentive_receivers"
-    id = Column(String, primary_key=True)
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    index = Column(Integer)
     address = Column(String)
     is_active = Column(Boolean)
 
     __table_args__ = (
         Index(
-            "idx_incentive_receivers__address",
+            "idx_incentive_receivers__address__index__chain_id",
             address,
+            index,
+            chain_id,
             unique=True,
         ),
     )
