@@ -10,6 +10,7 @@ from sqlalchemy import (
     Numeric,
     String,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from database.base import Base
@@ -32,7 +33,7 @@ class OwnershipProposal(Base):
     status = Column(sa.Enum(OwnershipProposalStatus))
     index = Column(Integer)
     target = Column(String)
-    data = Column(String)
+    data = Column(JSONB)
     decode_data = Column(String)
     week = Column(Integer)
     required_weight = Column(Numeric)

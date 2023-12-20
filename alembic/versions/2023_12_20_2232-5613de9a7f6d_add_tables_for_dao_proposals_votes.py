@@ -12,6 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
+from sqlalchemy.dialects import postgresql
+
 revision: str = '5613de9a7f6d'
 down_revision: Union[str, None] = 'bf815fca9595'
 branch_labels: Union[str, Sequence[str], None] = None
@@ -39,7 +41,7 @@ def upgrade() -> None:
     sa.Column('status', sa.Enum('not_passed', 'passed', 'cancelled', 'executed', name=enum_name), nullable=True),
     sa.Column('index', sa.Integer(), nullable=True),
     sa.Column('target', sa.String(), nullable=True),
-    sa.Column('data', sa.String(), nullable=True),
+    sa.Column('data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('decode_data', sa.String(), nullable=True),
     sa.Column('week', sa.Integer(), nullable=True),
     sa.Column('required_weight', sa.Numeric(), nullable=True),
