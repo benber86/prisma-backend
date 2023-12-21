@@ -14,6 +14,7 @@ LABELS = {
     "0xE0598D793bAf7b4f49F4a003885E4180B28caB61": "Gas Pool",
     "0xc89570207c5BA1B0E3cD372172cCaEFB173DB270": "Curve ETH/mkUSD Pool",
 }
+START_TIME = 1691625600
 CURVE_SUBGRAPH = (
     "https://api.thegraph.com/subgraphs/name/convex-community/volume-mainnet"
 )

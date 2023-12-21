@@ -10,6 +10,8 @@ STABLECOINS: dict[str, str] = {ethereum.CHAIN_NAME: ethereum.STABLECOIN}
 
 LABELS: dict[str, dict[str, str]] = {ethereum.CHAIN_NAME: ethereum.LABELS}
 
+START_TIMES: dict[str, int] = {ethereum.CHAIN_NAME: ethereum.START_TIME}
+
 CURVE_SUBGRAPHS: dict[str, str] = {
     ethereum.CHAIN_NAME: ethereum.CURVE_SUBGRAPH
 }
