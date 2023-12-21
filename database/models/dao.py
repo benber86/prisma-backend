@@ -26,13 +26,11 @@ class OwnershipProposal(Base):
         cancelled = "cancelled"
         executed = "executed"
 
-    id = Column(String, primary_key=True)
     chain_id = Column(ForeignKey("chains.id"), nullable=False)
     creator_id = Column(ForeignKey("users.id"))
     creator = relationship("User")
     status = Column(sa.Enum(OwnershipProposalStatus))
     index = Column(Integer)
-    target = Column(String)
     data = Column(JSONB)
     decode_data = Column(String)
     week = Column(Integer)
@@ -76,7 +74,7 @@ class OwnershipVote(Base):
 
     __table_args__ = (
         Index(
-            "idx_ownership_vote__proposal_id__user_id",
+            "idx_ownership_vote__proposal_id__user_id__index",
             proposal_id,
             voter_id,
             index,
@@ -105,6 +103,7 @@ class IncentiveReceiver(Base):
 
 class IncentiveVote(Base):
     __tablename__ = "incentive_votes"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
     voter_id = Column(ForeignKey("users.id"))
     index = Column(Integer)
     week = Column(Integer)
@@ -121,9 +120,36 @@ class IncentiveVote(Base):
 
     __table_args__ = (
         Index(
-            "idx_incentive_votes__voter_id__target_id",
+            "idx_incentive_votes__index__week__chain_id__voter_id__target_id",
+            index,
+            week,
+            chain_id,
             voter_id,
             target_id,
+            unique=True,
+        ),
+    )
+
+
+class UserWeeklyIncentiveWeights(Base):
+    __tablename__ = "user_incent_weights"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    voter_id = Column(ForeignKey("users.id"))
+    receiver_id = Column(ForeignKey("incentive_receivers.id"))
+
+    week = Column(Integer)
+    weight = Column(Integer)
+
+    voter = relationship("User")
+    receiver = relationship("IncentiveReceiver")
+
+    __table_args__ = (
+        Index(
+            "idx_user_incent_weights__week__chain_id__voter_id__receiver_id",
+            week,
+            chain_id,
+            voter_id,
+            receiver_id,
             unique=True,
         ),
     )
