@@ -2,6 +2,8 @@ from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from .base import Base
+from .engine import db
+from .models.common import User
 
 
 def upsert_query(
@@ -42,3 +44,9 @@ def update_by_id_query(model: type[Base], row_id: int, update_data: dict):
         .values(**update_data)
     )
     return query
+
+
+async def add_user(user: str):
+    user_id = user.lower()
+    query = insert_ignore_query(User, {"id": user_id}, {})
+    await db.execute(query)

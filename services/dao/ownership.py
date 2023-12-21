@@ -6,7 +6,7 @@ from sqlalchemy import select
 from database.engine import db
 from database.models.common import Chain
 from database.models.dao import OwnershipProposal, OwnershipVote
-from database.utils import upsert_query
+from database.utils import add_user, upsert_query
 from services.dao.decoding import decode_payload
 from utils.const import SUBGRAPHS
 from utils.const.chains import ethereum
@@ -56,8 +56,7 @@ OWNERSHIP_PROPOSAL_QUERY = """
 """
 
 
-async def get_existing_proposal_entry(chain_id, proposal):
-    index = proposal["index"]
+async def get_existing_proposal_entry(chain_id: int, index: int):
     query = select(OwnershipProposal).where(
         OwnershipProposal.chain_id == chain_id,
         OwnershipProposal.index == index,
@@ -100,16 +99,16 @@ async def sync_ownership_proposals_and_votes(
                 "chain_id": chain_id,
                 "creator_id": proposal["creator"]["id"],
                 "index": proposal["index"],
-                "id": proposal["id"],
             }
+            await add_user(proposal["creator"]["id"])
             data = {
                 "required_weight": proposal["requiredWeight"],
                 "received_weight": proposal["receivedWeight"],
-                "can_execute_after": proposal["canExecuteAfter"],
-                "vote_count": proposal["voteCount"],
+                "can_execute_after": int(proposal["canExecuteAfter"]),
+                "vote_count": int(proposal["voteCount"]),
                 "execution_tx": proposal["execution"]["transactionHash"],
-                "data": json.loads(proposal["payload"]),
-                "week": json.loads(proposal["week"]),
+                "data": proposal["payload"],
+                "week": int(proposal["week"]),
                 "status": _str_to_proposal_status_enum(proposal["status"]),
                 "block_timestamp": proposal["blockTimestamp"],
                 "block_number": proposal["blockNumber"],
@@ -123,25 +122,27 @@ async def sync_ownership_proposals_and_votes(
                 logger.info(
                     f"Undecoded proposal found for proposal {index}, decoding"
                 )
-                decode_data = decode_payload(proposal["decode_data"])
+                decode_data = decode_payload(proposal["payload"])
                 if decode_data:
                     data["decode_data"] = decode_data
-
-            query = upsert_query(OwnershipProposal, indexes, data)
-            await db.execute(query)
+            query = upsert_query(
+                OwnershipProposal, indexes, data, [OwnershipProposal.id]
+            )
+            proposal_id = await db.execute(query)
 
             if proposal_db_entry and proposal_db_entry["vote_count"]:
-                if proposal_db_entry["vote_count"] == proposal["vote_count"]:
+                if proposal_db_entry["vote_count"] == proposal["voteCount"]:
                     continue
 
             for vote in proposal["votes"]:
                 indexes = {
-                    "proposal_id": proposal["id"],
+                    "proposal_id": proposal_id,
                     "voter_id": vote["voter"]["id"],
-                    "index": vote["index"],
+                    "index": int(vote["index"]),
                 }
+                await add_user(vote["voter"]["id"])
                 data = {
-                    "weight": vote["weight"],
+                    "weight": int(vote["weight"]),
                     "account_weight": vote["accountWeight"],
                     "decisive": vote["decisive"],
                     "block_timestamp": vote["blockTimestamp"],
@@ -154,6 +155,6 @@ async def sync_ownership_proposals_and_votes(
         # no need to continue query if we reached limit
         if (
             len(prop_data["ownershipProposals"]) > 0
-            and prop_data["ownershipProposals"][0]["id"] < index + 1000
+            and int(prop_data["ownershipProposals"][0]["id"]) < index + 1000
         ):
             break

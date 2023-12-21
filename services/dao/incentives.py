@@ -4,12 +4,16 @@ from sqlalchemy import select, update
 
 from database.engine import db
 from database.models.common import Chain
-from database.models.dao import IncentiveVote, UserWeeklyIncentiveWeights
-from database.utils import upsert_query
+from database.models.dao import (
+    IncentiveReceiver,
+    IncentiveVote,
+    UserWeeklyIncentiveWeights,
+)
+from database.utils import add_user, upsert_query
 from utils.const import SUBGRAPHS
 from utils.const.chains import ethereum
 from utils.subgraph.query import async_grt_query
-from utils.time import get_first_week, get_week
+from utils.time import get_week
 
 logger = logging.getLogger()
 
@@ -25,6 +29,7 @@ INCENTIVE_VOTING_QUERY = """
     votes {
       recipient {
         id
+        address
       }
       weight
     }
@@ -48,7 +53,6 @@ async def set_weights_to_zero(week: int, voter_id: int, chain_id: int):
     )
 
     await db.execute(query)
-    await db.commit()
 
 
 async def fetch_latest_incentive_entry(chain_id):
@@ -66,7 +70,7 @@ async def get_latest_db_week(chain, chain_id):
     if res:
         return res["week"]
     else:
-        return get_first_week(chain)
+        return 0
 
 
 async def update_specific_weight(
@@ -100,7 +104,6 @@ async def update_specific_weight(
     )
 
     await db.execute(update_query)
-    await db.commit()
 
 
 async def parse_incentive_data(
@@ -109,6 +112,7 @@ async def parse_incentive_data(
     last_index = 0
     for incentive in incentive_data["incentiveVotes"]:
         voter = incentive["voter"]["id"]
+        await add_user(voter)
         if incentive["isClearance"]:
             await set_weights_to_zero(week, voter, chain_id)
 
@@ -117,8 +121,10 @@ async def parse_incentive_data(
             "week": week,
             "chain_id": chain_id,
             "voter_id": voter,
+            "target_id": None,
         }
         data = {
+            "weight": 0,
             "is_clearance": incentive["isClearance"],
             "block_timestamp": incentive["blockTimestamp"],
             "block_number": incentive["blockNumber"],
@@ -126,12 +132,22 @@ async def parse_incentive_data(
         }
         votes = incentive["votes"]
         for vote in votes:
-            recipient_id = vote["recipient"]["id"]
+            query = upsert_query(
+                IncentiveReceiver,
+                indexes={
+                    "chain_id": chain_id,
+                    "address": vote["recipient"]["address"],
+                    "index": int(vote["recipient"]["id"]),
+                },
+                data={"is_active": True},
+                return_columns=[IncentiveReceiver.id],
+            )
+            recipient_id = await db.execute(query)
             indexes["target_id"] = recipient_id
-            data["weight"] = vote["weight"]
+            data["weight"] = int(vote["weight"])
             # we update the weekly tallies
             await update_specific_weight(
-                week, voter, chain_id, recipient_id, vote["weight"]
+                week, voter, chain_id, recipient_id, int(vote["weight"])
             )
             query = upsert_query(IncentiveVote, indexes, data)
             await db.execute(query)
@@ -150,6 +166,7 @@ async def sync_incentive_votes(
     endpoint = SUBGRAPHS[chain]
     current_week = get_week(chain)
     latest_week = await get_latest_db_week(chain, chain_id)
+    logger.info(f"## incentive current w {current_week}, latest {latest_week}")
     for week in range(latest_week, current_week + 1):
         for index in range(0, 10000, 1000):
             logger.info(

@@ -16,6 +16,7 @@ celery.conf.update(
         "services.sync.back_populate",
         "services.sync.revenue",
         "services.cvxprisma.sync",
+        "services.dao.sync",
         "services.prices.populate_mkusd",
         "services.prices.mkusd_holders",
         "services.prices.liquidity_depth",

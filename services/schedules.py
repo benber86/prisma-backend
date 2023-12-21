@@ -78,12 +78,38 @@ CVXPRISMA_SYNC_SCHEDULE = {
     for chain, chain_id in CHAINS.items()
 }
 
+DAO_OWNERSHIP_SYNC_SCHEDULE = {
+    f"sync-dao-ownership-{chain}": {
+        "task": "services.dao.sync.back_populate_ownership_votes",
+        "schedule": timedelta(seconds=60),
+        "args": (
+            chain,
+            chain_id,
+        ),
+    }
+    for chain, chain_id in CHAINS.items()
+}
+
+DAO_INCENTIVE_SYNC_SCHEDULE = {
+    f"sync-dao-incentive-{chain}": {
+        "task": "services.dao.sync.back_populate_incentive_votes",
+        "schedule": timedelta(seconds=30),
+        "args": (
+            chain,
+            chain_id,
+        ),
+    }
+    for chain, chain_id in CHAINS.items()
+}
+
 CELERY_BEAT_SCHEDULE = {
-    **SUBGRAPH_SYNC_SCHEDULE,
-    **PRICE_SYNC_SCHEDULE,
-    **DEPTH_SCHEDULE,
-    **HOLDERS_SCHEDULE,
-    **IMPACT_SCHEDULE,
-    **CVXPRISMA_SYNC_SCHEDULE,
-    **REVENUE_SCHEDULE,
+    # **SUBGRAPH_SYNC_SCHEDULE,
+    # **PRICE_SYNC_SCHEDULE,
+    # **DEPTH_SCHEDULE,
+    # **HOLDERS_SCHEDULE,
+    # **IMPACT_SCHEDULE,
+    # **CVXPRISMA_SYNC_SCHEDULE,
+    # **REVENUE_SCHEDULE,
+    # **DAO_OWNERSHIP_SYNC_SCHEDULE,
+    **DAO_INCENTIVE_SYNC_SCHEDULE,
 }
