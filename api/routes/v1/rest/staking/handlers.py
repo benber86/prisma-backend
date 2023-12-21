@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/flow",
+    "/{contract}/flow",
     response_model=AggregateStakingFlowResponse,
     **get_router_method_settings(
         BaseMethodDescription(
@@ -33,25 +33,25 @@ router = APIRouter()
         )
     ),
 )
-async def get_staking_flow(filter_set: FilterSet = Depends()):
+async def get_staking_flow(contract: str, filter_set: FilterSet = Depends()):
 
-    return await get_aggregated_flow(filter_set)
+    return await get_aggregated_flow(filter_set, contract)
 
 
 @router.get(
-    "/tvl",
+    "/{contract}/tvl",
     response_model=StakingTvlResponse,
     **get_router_method_settings(
         BaseMethodDescription(summary="Get historical TVL of staking contract")
     ),
 )
-async def get_staking_tvl(filter_set: FilterSet = Depends()):
+async def get_staking_tvl(contract: str, filter_set: FilterSet = Depends()):
 
-    return await get_aggregated_tvl(filter_set)
+    return await get_aggregated_tvl(filter_set, contract)
 
 
 @router.get(
-    "/snapshots",
+    "/{contract}/snapshots",
     response_model=StakingSnapshotsResponse,
     **get_router_method_settings(
         BaseMethodDescription(
@@ -59,13 +59,15 @@ async def get_staking_tvl(filter_set: FilterSet = Depends()):
         )
     ),
 )
-async def get_staking_snapshots(filter_set: PeriodFilterSet = Depends()):
+async def get_staking_snapshots(
+    contract: str, filter_set: PeriodFilterSet = Depends()
+):
 
-    return await get_snapshots(filter_set)
+    return await get_snapshots(filter_set, contract)
 
 
 @router.get(
-    "/{user}/details",
+    "/{contract}/{user}/details",
     response_model=UserDetails,
     **get_router_method_settings(
         BaseMethodDescription(
@@ -73,13 +75,13 @@ async def get_staking_snapshots(filter_set: PeriodFilterSet = Depends()):
         )
     ),
 )
-async def get_user_info(user: str):
+async def get_user_info(contract: str, user: str):
 
-    return await get_user_details(user)
+    return await get_user_details(user, contract)
 
 
 @router.get(
-    "/distribution",
+    "/{contract}/distribution",
     response_model=DistributionResponse,
     **get_router_method_settings(
         BaseMethodDescription(
@@ -87,6 +89,6 @@ async def get_user_info(user: str):
         )
     ),
 )
-async def get_staking_distribution():
+async def get_staking_distribution(contract: str):
 
-    return await get_staking_balance_histogram()
+    return await get_staking_balance_histogram(contract)

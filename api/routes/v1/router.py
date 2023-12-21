@@ -1,6 +1,7 @@
 from api.fastapi import compile_routers
 from api.routes.v1.rest.chains.handlers import router as chains_router
 from api.routes.v1.rest.collateral.handlers import router as collateral_router
+from api.routes.v1.rest.dao.handlers import router as dao_router
 from api.routes.v1.rest.liquidations.handlers import (
     router as liquidation_router,
 )
@@ -11,7 +12,6 @@ from api.routes.v1.rest.stability_pool.handlers import (
     router as stability_pool_router,
 )
 from api.routes.v1.rest.staking.handlers import router as staking_router
-from api.routes.v1.rest.staking.handlersv2 import router as staking_router2
 from api.routes.v1.rest.trove.handlers import router as trove_router
 from api.routes.v1.rest.trove_managers.handlers import (
     router as trove_manager_router,
@@ -61,14 +61,14 @@ http_routers = [
         "prefix": "/staking",
     },
     {
-        "router": staking_router2,
-        "tags": ["staking"],
-        "prefix": "/staking",
-    },
-    {
         "router": revenue_router,
         "tags": ["revenue"],
         "prefix": "/revenue",
+    },
+    {
+        "router": dao_router,
+        "tags": ["dao"],
+        "prefix": "/dao",
     },
 ]
 
