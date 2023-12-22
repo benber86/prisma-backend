@@ -81,7 +81,7 @@ async def get_user_incentives(
         select(
             [
                 UserWeeklyIncentivePoints.week,
-                UserWeeklyIncentivePoints.receiver_id,
+                Receiver.index.label("receiver_id"),
                 Receiver.address.label("receiver_address"),
                 UserWeeklyIncentivePoints.points,
             ]
