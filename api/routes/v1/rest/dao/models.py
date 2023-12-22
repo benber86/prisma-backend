@@ -66,3 +66,19 @@ class WeeklyUserVoteData(BaseModel):
 
 class WeeklyUserVoteDataResponse(BaseModel):
     votes: list[WeeklyUserVoteData]
+
+
+class UserVote(BaseModel):
+    week: int
+    receiver_id: int | None
+    receiver_address: str | None
+    receiver_label: str | None
+    points: int | None
+    clearance: bool
+    block_number: int
+    block_timestamp: int
+    transaction_hash: str
+
+
+class UserVoteResponse(BaseModel):
+    votes: list[UserVote]

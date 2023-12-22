@@ -10,6 +10,8 @@ from api.routes.v1.rest.dao.models import (
     OrderFilter,
     OwnershipProposalDetail,
     OwnershipProposalDetailResponse,
+    UserVote,
+    UserVoteResponse,
     WeeklyUserVote,
     WeeklyUserVoteData,
     WeeklyUserVoteDataResponse,
@@ -18,6 +20,7 @@ from database.engine import db
 from database.models.common import User
 from database.models.dao import (
     IncentiveReceiver,
+    IncentiveVote,
     OwnershipProposal,
     UserWeeklyIncentivePoints,
 )
@@ -102,8 +105,8 @@ async def get_user_incentives(
         vote = WeeklyUserVote(
             receiver_id=row.receiver_id,
             receiver_address=row.receiver_address,
-            receiver_label=RECEIVER_MAPPINGS[row.receiver_id]
-            if row.receiver_id in RECEIVER_MAPPINGS
+            receiver_label=RECEIVER_MAPPINGS[chain][row.receiver_id]
+            if row.receiver_id in RECEIVER_MAPPINGS[chain]
             else row.receiver_address,
             points=row.points,
         )
@@ -127,3 +130,52 @@ async def get_user_incentives(
         for week, votes in weekly_votes.items()
     ]
     return WeeklyUserVoteDataResponse(votes=votes_data)
+
+
+async def get_user_votes(
+    chain_id: int, chain: str, user: str
+) -> UserVoteResponse:
+    Receiver = aliased(IncentiveReceiver)
+
+    query = (
+        select(
+            [
+                IncentiveVote.index,
+                Receiver.index.label("receiver_id"),
+                Receiver.address.label("receiver_address"),
+                IncentiveVote.week,
+                IncentiveVote.points,
+                IncentiveVote.is_clearance,
+                IncentiveVote.block_number,
+                IncentiveVote.block_timestamp,
+                IncentiveVote.transaction_hash,
+            ]
+        )
+        .join(Receiver, IncentiveVote.target_id == Receiver.id)
+        .where(
+            IncentiveVote.voter_id.ilike(user),
+            IncentiveVote.chain_id == chain_id,
+        )
+        .order_by(IncentiveVote.index)
+    )
+
+    result = await db.fetch_all(query)
+
+    votes = []
+    for row in result:
+        vote = UserVote(
+            week=row.week,
+            receiver_id=row.receiver_id,
+            receiver_address=row.receiver_address,
+            receiver_label=RECEIVER_MAPPINGS[chain].get(
+                row.receiver_id, row.receiver_address
+            ),
+            points=row.points,
+            clearance=row.is_clearance,
+            block_number=row.block_number,
+            block_timestamp=row.block_timestamp,
+            transaction_hash=row.transaction_hash,
+        )
+        votes.append(vote)
+
+    return UserVoteResponse(votes=votes)
