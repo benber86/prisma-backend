@@ -1,13 +1,14 @@
 import logging
 
 from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from database.engine import db
 from database.models.common import Chain
 from database.models.dao import (
     IncentiveReceiver,
     IncentiveVote,
-    UserWeeklyIncentiveWeights,
+    UserWeeklyIncentivePoints,
 )
 from database.utils import add_user, upsert_query
 from utils.const import SUBGRAPHS
@@ -26,12 +27,12 @@ INCENTIVE_VOTING_QUERY = """
     weeklyVoteIndex
     week
     isClearance
-    votes {
+    votes(first: 1000) {
       recipient {
         id
         address
       }
-      weight
+      points
     }
     blockNumber
     blockTimestamp
@@ -41,17 +42,16 @@ INCENTIVE_VOTING_QUERY = """
 """
 
 
-async def set_weights_to_zero(week: int, voter_id: int, chain_id: int):
+async def set_points_to_zero(week: int, voter_id: int, chain_id: int):
     query = (
-        update(UserWeeklyIncentiveWeights)
+        update(UserWeeklyIncentivePoints)
         .where(
-            UserWeeklyIncentiveWeights.week == week,
-            UserWeeklyIncentiveWeights.voter_id == voter_id,
-            UserWeeklyIncentiveWeights.chain_id == chain_id,
+            UserWeeklyIncentivePoints.week == week,
+            UserWeeklyIncentivePoints.voter_id == voter_id,
+            UserWeeklyIncentivePoints.chain_id == chain_id,
         )
-        .values(weight=0)
+        .values(points=0)
     )
-
     await db.execute(query)
 
 
@@ -73,34 +73,38 @@ async def get_latest_db_week(chain, chain_id):
         return 0
 
 
-async def update_specific_weight(
+async def update_specific_points(
     week: int,
     voter_id: int,
     chain_id: int,
     receiver_id: int,
-    additional_weight: int,
+    additional_points: int,
 ):
-    current_weight_query = select(UserWeeklyIncentiveWeights.weight).where(
-        UserWeeklyIncentiveWeights.week == week,
-        UserWeeklyIncentiveWeights.voter_id == voter_id,
-        UserWeeklyIncentiveWeights.chain_id == chain_id,
-        UserWeeklyIncentiveWeights.receiver_id == receiver_id,
+    current_point_query = select(UserWeeklyIncentivePoints.points).where(
+        UserWeeklyIncentivePoints.week == week,
+        UserWeeklyIncentivePoints.voter_id == voter_id,
+        UserWeeklyIncentivePoints.chain_id == chain_id,
+        UserWeeklyIncentivePoints.receiver_id == receiver_id,
     )
-    current_weight_result = await db.fetch_one(current_weight_query)
-    if current_weight_result:
-        current_weight = current_weight_result["weight"]
+    current_points_result = await db.fetch_one(current_point_query)
+    if current_points_result:
+        current_points = current_points_result["points"]
     else:
-        current_weight = 0
+        current_points = 0
 
     update_query = (
-        update(UserWeeklyIncentiveWeights)
-        .where(
-            UserWeeklyIncentiveWeights.week == week,
-            UserWeeklyIncentiveWeights.voter_id == voter_id,
-            UserWeeklyIncentiveWeights.chain_id == chain_id,
-            UserWeeklyIncentiveWeights.receiver_id == receiver_id,
+        insert(UserWeeklyIncentivePoints)
+        .values(
+            week=week,
+            voter_id=voter_id,
+            chain_id=chain_id,
+            receiver_id=receiver_id,
+            points=additional_points,
         )
-        .values(weight=current_weight + additional_weight)
+        .on_conflict_do_update(
+            index_elements=["week", "voter_id", "chain_id", "receiver_id"],
+            set_={"points": current_points + additional_points},
+        )
     )
 
     await db.execute(update_query)
@@ -114,7 +118,7 @@ async def parse_incentive_data(
         voter = incentive["voter"]["id"]
         await add_user(voter)
         if incentive["isClearance"]:
-            await set_weights_to_zero(week, voter, chain_id)
+            await set_points_to_zero(week, voter, chain_id)
 
         indexes = {
             "index": incentive["weeklyVoteIndex"],
@@ -124,7 +128,7 @@ async def parse_incentive_data(
             "target_id": None,
         }
         data = {
-            "weight": 0,
+            "points": 0,
             "is_clearance": incentive["isClearance"],
             "block_timestamp": incentive["blockTimestamp"],
             "block_number": incentive["blockNumber"],
@@ -144,10 +148,10 @@ async def parse_incentive_data(
             )
             recipient_id = await db.execute(query)
             indexes["target_id"] = recipient_id
-            data["weight"] = int(vote["weight"])
+            data["points"] = int(vote["points"])
             # we update the weekly tallies
-            await update_specific_weight(
-                week, voter, chain_id, recipient_id, int(vote["weight"])
+            await update_specific_points(
+                week, voter, chain_id, recipient_id, int(vote["points"])
             )
             query = upsert_query(IncentiveVote, indexes, data)
             await db.execute(query)
@@ -182,6 +186,9 @@ async def sync_incentive_votes(
                 )
             last_processed_index = await parse_incentive_data(
                 chain_id, week, incentive_data
+            )
+            logger.info(
+                f"Total entries process in this batch {last_processed_index} : {len(incentive_data['incentiveVotes'])}"
             )
             if last_processed_index < index + 1000:
                 break

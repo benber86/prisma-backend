@@ -107,7 +107,7 @@ class IncentiveVote(Base):
     voter_id = Column(ForeignKey("users.id"))
     index = Column(Integer)
     week = Column(Integer)
-    weight = Column(Integer)
+    points = Column(Integer)
     is_clearance = Column(Boolean)
     target_id = Column(ForeignKey("incentive_receivers.id"))
 
@@ -131,21 +131,21 @@ class IncentiveVote(Base):
     )
 
 
-class UserWeeklyIncentiveWeights(Base):
-    __tablename__ = "user_incent_weights"
+class UserWeeklyIncentivePoints(Base):
+    __tablename__ = "user_incent_points"
     chain_id = Column(ForeignKey("chains.id"), nullable=False)
     voter_id = Column(ForeignKey("users.id"))
     receiver_id = Column(ForeignKey("incentive_receivers.id"))
 
     week = Column(Integer)
-    weight = Column(Integer)
+    points = Column(Integer)
 
     voter = relationship("User")
     receiver = relationship("IncentiveReceiver")
 
     __table_args__ = (
         Index(
-            "idx_user_incent_weights__week__chain_id__voter_id__receiver_id",
+            "idx_user_incent_points__week__chain_id__voter_id__receiver_id",
             week,
             chain_id,
             voter_id,
