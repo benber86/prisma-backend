@@ -3,10 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.logger import get_logger
 from api.models.common import Pagination
-from api.routes.v1.rest.dao.crud import search_ownership_proposals
+from api.routes.v1.rest.dao.crud import (
+    get_user_incentives,
+    search_ownership_proposals,
+)
 from api.routes.v1.rest.dao.models import (
     OrderFilter,
     OwnershipProposalDetailResponse,
+    WeeklyUserVoteDataResponse,
 )
 from utils.const import CHAINS
 
@@ -16,7 +20,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/{chain}",
+    "/{chain}/ownership/proposals",
     response_model=OwnershipProposalDetailResponse,
     **get_router_method_settings(
         BaseMethodDescription(
@@ -34,3 +38,23 @@ async def get_all_ownership_proposals(
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (search_ownership_proposals(CHAINS[chain], pagination, order))
+
+
+@router.get(
+    "/{chain}/incentives/distribution/{user}",
+    response_model=WeeklyUserVoteDataResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get how a user distributed their points on all weeks"
+        )
+    ),
+)
+async def get_user_incentive_distrib(
+    chain: str,
+    user: str,
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_user_incentives(CHAINS[chain], chain, user))

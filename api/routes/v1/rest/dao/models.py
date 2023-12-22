@@ -50,3 +50,19 @@ class OrderFilter(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class WeeklyUserVote(BaseModel):
+    receiver_id: int
+    receiver_address: str
+    receiver_label: str
+    points: int
+
+
+class WeeklyUserVoteData(BaseModel):
+    week: int
+    votes: list[WeeklyUserVote]
+
+
+class WeeklyUserVoteDataResponse(BaseModel):
+    votes: list[WeeklyUserVoteData]

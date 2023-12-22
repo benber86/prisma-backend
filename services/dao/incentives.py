@@ -1,9 +1,10 @@
+import asyncio
 import logging
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
-from database.engine import db
+from database.engine import db, wrap_dbs
 from database.models.common import Chain
 from database.models.dao import (
     IncentiveReceiver,
@@ -110,13 +111,85 @@ async def update_specific_points(
     await db.execute(update_query)
 
 
+async def forward_previous_votes(week: int, voter_id: int, chain_id: int):
+    # Query to find the latest week with non-null points for each receiver
+    subquery = (
+        select(
+            [
+                UserWeeklyIncentivePoints.receiver_id,
+                func.max(UserWeeklyIncentivePoints.week).label("max_week"),
+            ]
+        )
+        .where(
+            UserWeeklyIncentivePoints.voter_id == voter_id,
+            UserWeeklyIncentivePoints.chain_id == chain_id,
+            UserWeeklyIncentivePoints.week < week,
+            UserWeeklyIncentivePoints.points.isnot(None),
+        )
+        .group_by(UserWeeklyIncentivePoints.receiver_id)
+        .subquery()
+    )
+
+    # Join to get the points for those weeks
+    latest_points_query = select(
+        [
+            subquery.c.receiver_id,
+            UserWeeklyIncentivePoints.points,
+            subquery.c.max_week,
+        ]
+    ).join(
+        UserWeeklyIncentivePoints,
+        and_(
+            UserWeeklyIncentivePoints.receiver_id == subquery.c.receiver_id,
+            UserWeeklyIncentivePoints.week == subquery.c.max_week,
+            UserWeeklyIncentivePoints.voter_id == voter_id,
+        ),
+    )
+
+    latest_points = await db.fetch_all(latest_points_query)
+
+    # Prepare bulk insert data
+    bulk_insert_data = []
+    for entry in latest_points:
+        receiver_id = entry["receiver_id"]
+        points = entry["points"]
+        max_week = entry["max_week"]
+
+        for w in range(max_week + 1, week + 1):
+            bulk_insert_data.append(
+                {
+                    "week": w,
+                    "voter_id": voter_id,
+                    "chain_id": chain_id,
+                    "receiver_id": receiver_id,
+                    "points": points,
+                }
+            )
+
+    for data in bulk_insert_data:
+        upsert_query = (
+            insert(UserWeeklyIncentivePoints)
+            .values(**data)
+            .on_conflict_do_update(
+                index_elements=["week", "chain_id", "voter_id", "receiver_id"],
+                set_=data,
+            )
+        )
+        await db.execute(upsert_query)
+
+
 async def parse_incentive_data(
     chain_id: int, week: int, incentive_data: dict
 ) -> int:
     last_index = 0
+    forwarded = False
     for incentive in incentive_data["incentiveVotes"]:
         voter = incentive["voter"]["id"]
         await add_user(voter)
+        if not forwarded:
+            await forward_previous_votes(week, voter, chain_id)
+            forwarded = True
+
         if incentive["isClearance"]:
             await set_points_to_zero(week, voter, chain_id)
 
@@ -192,3 +265,7 @@ async def sync_incentive_votes(
             )
             if last_processed_index < index + 1000:
                 break
+
+
+if __name__ == "__main__":
+    asyncio.run(wrap_dbs(sync_incentive_votes)("ethereum", 1))
