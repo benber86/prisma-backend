@@ -10,6 +10,8 @@ from api.routes.v1.rest.dao.models import (
     OrderFilter,
     OwnershipProposalDetail,
     OwnershipProposalDetailResponse,
+    UserOwnershipVote,
+    UserOwnershipVoteResponse,
     UserVote,
     UserVoteResponse,
     WeeklyUserVote,
@@ -22,6 +24,7 @@ from database.models.dao import (
     IncentiveReceiver,
     IncentiveVote,
     OwnershipProposal,
+    OwnershipVote,
     UserWeeklyIncentivePoints,
 )
 from utils.const import RECEIVER_MAPPINGS
@@ -179,3 +182,45 @@ async def get_user_votes(
         votes.append(vote)
 
     return UserVoteResponse(votes=votes)
+
+
+async def get_user_ownership_votes(
+    chain_id: int, chain: str, user: str
+) -> UserOwnershipVoteResponse:
+    Proposal = aliased(OwnershipProposal)
+
+    query = (
+        select(
+            [
+                Proposal.week,
+                Proposal.index.label("proposal_index"),
+                OwnershipVote.account_weight,
+                OwnershipVote.decisive,
+                OwnershipVote.block_number,
+                OwnershipVote.block_timestamp,
+                OwnershipVote.transaction_hash,
+            ]
+        )
+        .join(Proposal, OwnershipVote.proposal_id == Proposal.id)
+        .where(
+            OwnershipVote.voter_id.ilike(user), Proposal.chain_id == chain_id
+        )
+        .order_by(OwnershipVote.block_timestamp)
+    )
+
+    result = await db.fetch_all(query)
+
+    votes = [
+        UserOwnershipVote(
+            week=row.week,
+            proposal_index=row.proposal_index,
+            account_weight=row.account_weight,
+            decisive=row.decisive,
+            block_number=row.block_number,
+            block_timestamp=row.block_timestamp,
+            transaction_hash=row.transaction_hash,
+        )
+        for row in result
+    ]
+
+    return UserOwnershipVoteResponse(votes=votes)

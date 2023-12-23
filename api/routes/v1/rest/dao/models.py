@@ -82,3 +82,17 @@ class UserVote(BaseModel):
 
 class UserVoteResponse(BaseModel):
     votes: list[UserVote]
+
+
+class UserOwnershipVote(BaseModel):
+    week: int
+    proposal_index: int
+    account_weight: int
+    decisive: bool
+    block_number: int
+    block_timestamp: int
+    transaction_hash: str
+
+
+class UserOwnershipVoteResponse(BaseModel):
+    votes: list[UserOwnershipVote]

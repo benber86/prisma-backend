@@ -5,12 +5,15 @@ from api.logger import get_logger
 from api.models.common import Pagination
 from api.routes.v1.rest.dao.crud import (
     get_user_incentives,
+    get_user_ownership_votes,
     get_user_votes,
     search_ownership_proposals,
 )
 from api.routes.v1.rest.dao.models import (
     OrderFilter,
     OwnershipProposalDetailResponse,
+    UserOwnershipVote,
+    UserOwnershipVoteResponse,
     UserVoteResponse,
     WeeklyUserVoteDataResponse,
 )
@@ -43,6 +46,26 @@ async def get_all_ownership_proposals(
 
 
 @router.get(
+    "/{chain}/ownership/history/{user}",
+    response_model=UserOwnershipVoteResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get all a user's ownership vote history details"
+        )
+    ),
+)
+async def get_user_ownership_vote_history(
+    chain: str,
+    user: str,
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_user_ownership_votes(CHAINS[chain], chain, user))
+
+
+@router.get(
     "/{chain}/incentives/distribution/{user}",
     response_model=WeeklyUserVoteDataResponse,
     **get_router_method_settings(
@@ -66,7 +89,9 @@ async def get_user_incentive_distrib(
     "/{chain}/incentives/history/{user}",
     response_model=UserVoteResponse,
     **get_router_method_settings(
-        BaseMethodDescription(summary="Get all a user's vote history details")
+        BaseMethodDescription(
+            summary="Get all a user's incentive vote history details"
+        )
     ),
 )
 async def get_user_incentive_vote_history(
