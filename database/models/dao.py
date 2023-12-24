@@ -153,3 +153,69 @@ class UserWeeklyIncentivePoints(Base):
             unique=True,
         ),
     )
+
+
+class WeeklyBoostData(Base):
+    __tablename__ = "weekly_boost"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    user_id = Column(ForeignKey("users.id"))
+    week = Column(Integer)
+    boost = Column(Numeric)
+    pct = Column(Numeric)
+    last_applied_fee = Column(Numeric)
+    non_locking_fee = Column(Numeric)
+    boost_delegation = Column(Boolean)
+    boost_delegation_users = Column(Numeric)
+    eligible_for = Column(Numeric)
+    total_claimed = Column(Numeric)
+    self_claimed = Column(Numeric)
+    other_claimed = Column(Numeric)
+    accrued_fees = Column(Numeric)
+    time_to_depletion = Column(Numeric)
+
+    user = relationship("User")
+
+    __table_args__ = (
+        Index(
+            "idx_weekly_boost__week__chain_id__user_id",
+            week,
+            chain_id,
+            user_id,
+            unique=True,
+        ),
+    )
+
+
+class BatchRewardClaim(Base):
+    __tablename__ = "batch_claims"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    caller_id = Column(ForeignKey("users.id"))
+    receiver_id = Column(ForeignKey("users.id"))
+    delegate_id = Column(ForeignKey("users.id"))
+    week = Column(Integer)
+    index = Column(Integer)
+    total_claimed = Column(Numeric)
+    total_claimed_boosted = Column(Numeric)
+    max_fee = Column(Numeric)
+    fee_generated = Column(Numeric)
+    fee_applied = Column(Numeric)
+
+    block_number = Column(Numeric)
+    block_timestamp = Column(Numeric)
+    transaction_hash = Column(String)
+
+    caller = relationship("User", foreign_keys=[caller_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
+    delegate = relationship("User", foreign_keys=[delegate_id])
+
+    __table_args__ = (
+        Index(
+            "idx_batch_claims__week__chain_id__caller_id__delegate_id__index",
+            week,
+            chain_id,
+            caller_id,
+            delegate_id,
+            index,
+            unique=True,
+        ),
+    )
