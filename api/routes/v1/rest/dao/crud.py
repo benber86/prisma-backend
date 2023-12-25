@@ -427,12 +427,14 @@ async def get_emissions_data(
                     WeeklyBoostData.non_locking_fee,
                     WeeklyBoostData.last_applied_fee,
                 ).label("fee"),
-                func.greatest(
-                    0,
-                    (
-                        WeeklyBoostData.eligible_for
-                        - WeeklyBoostData.total_claimed
-                    ),
+                func.sum(
+                    func.greatest(
+                        0,
+                        (
+                            WeeklyBoostData.eligible_for
+                            - WeeklyBoostData.total_claimed
+                        ),
+                    )
                 ).label("available_emissions"),
             ]
         )
@@ -440,13 +442,14 @@ async def get_emissions_data(
             WeeklyBoostData.chain_id == chain_id,
             WeeklyBoostData.week == week,
             or_(
-                WeeklyBoostData.non_locking_fee < 100,
+                WeeklyBoostData.non_locking_fee < 10000,
                 and_(
                     WeeklyBoostData.non_locking_fee.is_(None),
-                    WeeklyBoostData.last_applied_fee < 100,
+                    WeeklyBoostData.last_applied_fee < 10000,
                 ),
             ),
         )
+        .group_by("fee")
         .order_by("fee")
     )
 
@@ -458,7 +461,7 @@ async def get_emissions_data(
         cumulative_emissions += float(result.available_emissions)
         emissions_data.append(
             AvailableAtFee(
-                available=cumulative_emissions, fee=float(result.fee)
+                available=cumulative_emissions, fee=float(result.fee) / 100
             )
         )
 

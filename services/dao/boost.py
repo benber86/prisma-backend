@@ -179,7 +179,6 @@ async def add_claim_data(
             }
             db_query = upsert_query(BatchRewardClaim, indexes, data)
             await db.execute(db_query)
-        return
         if delegation_count < 1000:
             return
         logger.info(
@@ -187,9 +186,12 @@ async def add_claim_data(
         )
         delegation_count -= 1000
         query = EXTENDED_CLAIM_QUERY % (delegate, week, delegation_count)
-        data_batch = await async_grt_query(
+        new_data_batch = await async_grt_query(
             endpoint=SUBGRAPHS[chain], query=query
         )
+        if not new_data_batch:
+            return
+        data_batch = new_data_batch
 
 
 async def sync_weekly_boost_data(chain: str, chain_id: int, week: int):
@@ -214,6 +216,7 @@ async def sync_weekly_boost_data(chain: str, chain_id: int, week: int):
                 "boost": boost["boost"],
                 "pct": boost["pct"],
                 "last_applied_fee": boost["lastAppliedFee"],
+                "non_locking_fee": boost["nonLockingFee"],
                 "boost_delegation": boost["boostDelegation"],
                 "boost_delegation_users": boost["boostDelegationUsers"],
                 "eligible_for": boost["eligibleFor"],
