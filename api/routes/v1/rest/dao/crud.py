@@ -7,6 +7,8 @@ from web3 import Web3
 
 from api.models.common import DecimalTimeSeries, Pagination
 from api.routes.v1.rest.dao.models import (
+    DelegationUser,
+    DelegationUserResponse,
     OrderFilter,
     OwnershipProposalDetail,
     OwnershipProposalDetailResponse,
@@ -341,3 +343,38 @@ async def get_historical_fee_accrued(
         )
 
     return cumulative_fees
+
+
+async def get_delegation_users(
+    chain_id: int, delegate: str
+) -> DelegationUserResponse:
+    query = (
+        select(
+            [
+                User.id.label("address"),
+                User.label,
+                func.sum(BatchRewardClaim.fee_generated).label("fees"),
+                func.count(BatchRewardClaim.id).label("claim_count"),
+            ]
+        )
+        .join(User, BatchRewardClaim.caller_id == User.id)
+        .where(
+            BatchRewardClaim.chain_id == chain_id,
+            BatchRewardClaim.delegate_id.ilike(delegate),
+        )
+        .group_by(User.id, User.label)
+        .order_by(func.sum(BatchRewardClaim.fee_generated).desc())
+    )
+
+    results = await db.fetch_all(query)
+
+    delegation_users = [
+        DelegationUser(
+            address=result.address,
+            label=result.label,
+            fees=float(result.fees),
+            count=result.claim_count,
+        )
+        for result in results
+    ]
+    return DelegationUserResponse(users=delegation_users)

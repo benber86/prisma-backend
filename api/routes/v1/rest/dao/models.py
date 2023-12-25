@@ -117,3 +117,14 @@ class WeeklyBoostUsage(BaseModel):
 
 class HistoricalBoostFees(BaseModel):
     boost: list[DecimalTimeSeries]
+
+
+class DelegationUser(BaseModel):
+    address: str
+    label: str | None
+    fees: float
+    count: int
+
+
+class DelegationUserResponse(BaseModel):
+    users: list[DelegationUser]

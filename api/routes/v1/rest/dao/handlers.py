@@ -5,6 +5,7 @@ from api.logger import get_logger
 from api.models.common import Pagination
 from api.routes.v1.rest.dao.crud import (
     get_boost_breakdown,
+    get_delegation_users,
     get_historical_fee_accrued,
     get_user_incentives,
     get_user_ownership_votes,
@@ -13,6 +14,7 @@ from api.routes.v1.rest.dao.crud import (
     search_ownership_proposals,
 )
 from api.routes.v1.rest.dao.models import (
+    DelegationUserResponse,
     HistoricalBoostFees,
     OrderFilter,
     OwnershipProposalDetailResponse,
@@ -171,3 +173,23 @@ async def get_user_boost_fees(
 
     data = await (get_historical_fee_accrued(CHAINS[chain], user))
     return HistoricalBoostFees(boost=data)
+
+
+@router.get(
+    "/{chain}/boost/delegations/{user}",
+    response_model=DelegationUserResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gets all the addresses that have used a user's delegation and the fees they generated"
+        )
+    ),
+)
+async def get_user_boost_users(
+    chain: str,
+    user: str,
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_delegation_users(CHAINS[chain], user))
