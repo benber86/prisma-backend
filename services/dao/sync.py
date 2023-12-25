@@ -4,6 +4,7 @@ import sys
 
 from database.engine import wrap_dbs
 from services.celery import celery
+from services.dao.boost import sync_boost_data
 from services.dao.incentives import sync_incentive_votes
 from services.dao.ownership import sync_ownership_proposals_and_votes
 
@@ -26,3 +27,8 @@ def back_populate_ownership_votes(chain: str, chain_id: int):
 @celery.task
 def back_populate_incentive_votes(chain: str, chain_id: int):
     asyncio.run(wrap_dbs(sync_incentive_votes)(chain, chain_id))
+
+
+@celery.task
+def back_populate_boost_data(chain: str, chain_id: int):
+    asyncio.run(wrap_dbs(sync_boost_data)(chain, chain_id))

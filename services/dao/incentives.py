@@ -243,7 +243,9 @@ async def sync_incentive_votes(
     endpoint = SUBGRAPHS[chain]
     current_week = get_week(chain)
     latest_week = await get_latest_db_week(chain, chain_id)
-    logger.info(f"## incentive current w {current_week}, latest {latest_week}")
+    logger.debug(
+        f"## incentive current w {current_week}, latest {latest_week}"
+    )
     for week in range(latest_week, current_week + 1):
         for index in range(0, 10000, 1000):
             logger.info(
