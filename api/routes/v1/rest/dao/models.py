@@ -128,3 +128,12 @@ class DelegationUser(BaseModel):
 
 class DelegationUserResponse(BaseModel):
     users: list[DelegationUser]
+
+
+class AvailableAtFee(BaseModel):
+    available: float
+    fee: float
+
+
+class AvailableAtFeeResponse(BaseModel):
+    emissions: list[AvailableAtFee]

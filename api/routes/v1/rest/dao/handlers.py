@@ -6,6 +6,7 @@ from api.models.common import Pagination
 from api.routes.v1.rest.dao.crud import (
     get_boost_breakdown,
     get_delegation_users,
+    get_emissions_data,
     get_historical_fee_accrued,
     get_top_delegation_users,
     get_user_incentives,
@@ -15,6 +16,7 @@ from api.routes.v1.rest.dao.crud import (
     search_ownership_proposals,
 )
 from api.routes.v1.rest.dao.models import (
+    AvailableAtFeeResponse,
     DelegationUserResponse,
     HistoricalBoostFees,
     OrderFilter,
@@ -211,3 +213,20 @@ async def get_top_boost_fees(chain: str, top: int, week: int):
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_top_delegation_users(CHAINS[chain], top, week))
+
+
+@router.get(
+    "/{chain}/boost/fees/available/{week}",
+    response_model=AvailableAtFeeResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gets the amount of available emissions at different fee levels on a given week"
+        )
+    ),
+)
+async def get_emission_fees(chain: str, week: int):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_emissions_data(CHAINS[chain], week))

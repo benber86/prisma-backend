@@ -1,12 +1,14 @@
 import logging
 from enum import Enum
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.orm import aliased
 from web3 import Web3
 
 from api.models.common import DecimalTimeSeries, Pagination
 from api.routes.v1.rest.dao.models import (
+    AvailableAtFee,
+    AvailableAtFeeResponse,
     DelegationUser,
     DelegationUserResponse,
     OrderFilter,
@@ -413,3 +415,51 @@ async def get_top_delegation_users(
     ]
 
     return DelegationUserResponse(users=delegation_users)
+
+
+async def get_emissions_data(
+    chain_id: int, week: int
+) -> AvailableAtFeeResponse:
+    query = (
+        select(
+            [
+                func.coalesce(
+                    WeeklyBoostData.non_locking_fee,
+                    WeeklyBoostData.last_applied_fee,
+                ).label("fee"),
+                func.greatest(
+                    0,
+                    (
+                        WeeklyBoostData.eligible_for
+                        - WeeklyBoostData.total_claimed
+                    ),
+                ).label("available_emissions"),
+            ]
+        )
+        .where(
+            WeeklyBoostData.chain_id == chain_id,
+            WeeklyBoostData.week == week,
+            or_(
+                WeeklyBoostData.non_locking_fee < 100,
+                and_(
+                    WeeklyBoostData.non_locking_fee.is_(None),
+                    WeeklyBoostData.last_applied_fee < 100,
+                ),
+            ),
+        )
+        .order_by("fee")
+    )
+
+    results = await db.fetch_all(query)
+
+    cumulative_emissions = 0.0
+    emissions_data = []
+    for result in results:
+        cumulative_emissions += float(result.available_emissions)
+        emissions_data.append(
+            AvailableAtFee(
+                available=cumulative_emissions, fee=float(result.fee)
+            )
+        )
+
+    return AvailableAtFeeResponse(emissions=emissions_data)
