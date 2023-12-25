@@ -32,6 +32,7 @@ class OwnershipProposalDetail(BaseModel):
 
 class OwnershipProposalDetailResponse(BaseModel):
     proposals: list[OwnershipProposalDetail]
+    count: int
 
 
 class OrderBy(Enum):

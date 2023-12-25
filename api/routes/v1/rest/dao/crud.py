@@ -37,32 +37,38 @@ async def search_ownership_proposals(
     order: OrderFilter,
 ) -> OwnershipProposalDetailResponse:
 
-    query = (
+    base_query = (
         select([OwnershipProposal, User.label.label("creator_label")])
         .join(User, OwnershipProposal.creator_id == User.id)
         .where(OwnershipProposal.chain_id == chain_id)
     )
 
     if order.creator_filter:
-        query = query.where(
+        base_query = base_query.where(
             OwnershipProposal.creator_id == order.creator_filter
         )
     if order.decode_data_filter:
-        query = query.where(
+        base_query = base_query.where(
             OwnershipProposal.decode_data == order.decode_data_filter
         )
 
+    count_query = select([func.count()]).select_from(
+        base_query.alias("subquery")
+    )
+    total_count = await db.fetch_val(count_query)
+
     order_column = getattr(OwnershipProposal, order.order_by)  # type: ignore
     if order.desc:
-        query = query.order_by(order_column.desc())
+        base_query = base_query.order_by(order_column.desc())
     else:
-        query = query.order_by(order_column)
+        base_query = base_query.order_by(order_column)
 
     items_per_page = pagination.items
     offset = (pagination.page - 1) * items_per_page
-    query = query.limit(items_per_page).offset(offset)
+    query_with_pagination = base_query.limit(items_per_page).offset(offset)
 
-    results = await db.fetch_all(query)
+    results = await db.fetch_all(query_with_pagination)
+
     proposals = []
     for result in results:
         result_dict = dict(result)
@@ -73,7 +79,10 @@ async def search_ownership_proposals(
             result_dict["status"] = result_dict["status"].value
         proposal = OwnershipProposalDetail(**result_dict)
         proposals.append(proposal)
-    return OwnershipProposalDetailResponse(proposals=proposals)
+
+    return OwnershipProposalDetailResponse(
+        proposals=proposals, count=total_count
+    )
 
 
 async def get_user_incentives(
