@@ -7,6 +7,7 @@ from api.routes.v1.rest.dao.crud import (
     get_boost_breakdown,
     get_delegation_users,
     get_historical_fee_accrued,
+    get_top_delegation_users,
     get_user_incentives,
     get_user_ownership_votes,
     get_user_votes,
@@ -193,3 +194,20 @@ async def get_user_boost_users(
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_delegation_users(CHAINS[chain], user))
+
+
+@router.get(
+    "/{chain}/boost/fees/top/{week}/{top}",
+    response_model=DelegationUserResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gets the top X addresses by boost fees received on a given week"
+        )
+    ),
+)
+async def get_top_boost_fees(chain: str, top: int, week: int):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_top_delegation_users(CHAINS[chain], top, week))

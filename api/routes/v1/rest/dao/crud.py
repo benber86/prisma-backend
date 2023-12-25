@@ -378,3 +378,38 @@ async def get_delegation_users(
         for result in results
     ]
     return DelegationUserResponse(users=delegation_users)
+
+
+async def get_top_delegation_users(
+    chain_id: int, top: int, week: int
+) -> DelegationUserResponse:
+    query = (
+        select(
+            [
+                User.id.label("address"),
+                User.label,
+                WeeklyBoostData.accrued_fees.label("fees"),
+                WeeklyBoostData.boost_delegation_users.label("user_count"),
+            ]
+        )
+        .join(User, WeeklyBoostData.user_id == User.id)
+        .where(
+            WeeklyBoostData.chain_id == chain_id, WeeklyBoostData.week == week
+        )
+        .order_by(WeeklyBoostData.accrued_fees.desc())
+        .limit(top)
+    )
+
+    results = await db.fetch_all(query)
+
+    delegation_users = [
+        DelegationUser(
+            address=result.address,
+            label=result.label,
+            fees=float(result.fees),
+            count=result.user_count,
+        )
+        for result in results
+    ]
+
+    return DelegationUserResponse(users=delegation_users)
