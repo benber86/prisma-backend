@@ -196,6 +196,7 @@ class BatchRewardClaim(Base):
     index = Column(Integer)
     total_claimed = Column(Numeric)
     total_claimed_boosted = Column(Numeric)
+    delegate_remaining_eligible = Column(Numeric)
     max_fee = Column(Numeric)
     fee_generated = Column(Numeric)
     fee_applied = Column(Numeric)
@@ -216,6 +217,22 @@ class BatchRewardClaim(Base):
             caller_id,
             delegate_id,
             index,
+            unique=True,
+        ),
+    )
+
+
+class WeeklyEmissions(Base):
+    __tablename__ = "weekly_emissions"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    week = Column(Integer)
+    emissions = Column(Numeric)
+
+    __table_args__ = (
+        Index(
+            "idx_weekly_emissions__week__chain_id",
+            week,
+            chain_id,
             unique=True,
         ),
     )
