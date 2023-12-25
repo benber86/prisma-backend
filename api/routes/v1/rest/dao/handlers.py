@@ -8,6 +8,7 @@ from api.routes.v1.rest.dao.crud import (
     get_user_incentives,
     get_user_ownership_votes,
     get_user_votes,
+    get_weekly_boost_use,
     search_ownership_proposals,
 )
 from api.routes.v1.rest.dao.models import (
@@ -16,6 +17,7 @@ from api.routes.v1.rest.dao.models import (
     UserOwnershipVote,
     UserOwnershipVoteResponse,
     UserVoteResponse,
+    WeeklyBoostUsage,
     WeeklyClaimDataResponse,
     WeeklyUserVoteDataResponse,
 )
@@ -125,3 +127,24 @@ async def get_user_claims_breakdown(
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_boost_breakdown(CHAINS[chain], user))
+
+
+@router.get(
+    "/{chain}/boost/usage/{week}/{user}",
+    response_model=WeeklyBoostUsage,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Shows how much of a user's weekly share of emissions was claimed over time"
+        )
+    ),
+)
+async def get_user_boost_usage(
+    chain: str,
+    week: int,
+    user: str,
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_weekly_boost_use(CHAINS[chain], week, user))

@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from api.models.common import GroupBy, Period
+from api.models.common import DecimalTimeSeries, GroupBy, Period
 
 
 class FilterSet(BaseModel):
@@ -109,3 +109,7 @@ class WeeklyClaimData(BaseModel):
 
 class WeeklyClaimDataResponse(BaseModel):
     claims: list[WeeklyClaimData]
+
+
+class WeeklyBoostUsage(BaseModel):
+    boost: list[DecimalTimeSeries]

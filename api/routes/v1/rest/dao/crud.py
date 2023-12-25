@@ -5,7 +5,7 @@ from sqlalchemy import and_, desc, func, select
 from sqlalchemy.orm import aliased
 from web3 import Web3
 
-from api.models.common import Pagination
+from api.models.common import DecimalTimeSeries, Pagination
 from api.routes.v1.rest.dao.models import (
     OrderFilter,
     OwnershipProposalDetail,
@@ -14,6 +14,7 @@ from api.routes.v1.rest.dao.models import (
     UserOwnershipVoteResponse,
     UserVote,
     UserVoteResponse,
+    WeeklyBoostUsage,
     WeeklyClaimData,
     WeeklyClaimDataResponse,
     WeeklyUserVote,
@@ -23,6 +24,7 @@ from api.routes.v1.rest.dao.models import (
 from database.engine import db
 from database.models.common import User
 from database.models.dao import (
+    BatchRewardClaim,
     IncentiveReceiver,
     IncentiveVote,
     OwnershipProposal,
@@ -278,3 +280,34 @@ async def get_boost_breakdown(
     ]
 
     return WeeklyClaimDataResponse(claims=claims)
+
+
+async def get_weekly_boost_use(
+    chain_id: int, week: int, delegate: str
+) -> WeeklyBoostUsage:
+    query = (
+        select(
+            [
+                BatchRewardClaim.delegate_remaining_eligible,
+                BatchRewardClaim.block_timestamp,
+            ]
+        )
+        .where(
+            BatchRewardClaim.chain_id == chain_id,
+            BatchRewardClaim.week == week,
+            BatchRewardClaim.delegate_id.ilike(delegate),
+        )
+        .order_by(BatchRewardClaim.block_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+
+    boost_usage_data = [
+        DecimalTimeSeries(
+            value=float(result.delegate_remaining_eligible),
+            timestamp=int(result.block_timestamp),
+        )
+        for result in results
+    ]
+
+    return WeeklyBoostUsage(boost=boost_usage_data)
