@@ -311,3 +311,33 @@ async def get_weekly_boost_use(
     ]
 
     return WeeklyBoostUsage(boost=boost_usage_data)
+
+
+async def get_historical_fee_accrued(
+    chain_id: int, delegate: str
+) -> list[DecimalTimeSeries]:
+    query = (
+        select(
+            [BatchRewardClaim.block_timestamp, BatchRewardClaim.fee_generated]
+        )
+        .where(
+            BatchRewardClaim.chain_id == chain_id,
+            BatchRewardClaim.fee_generated > 0,
+            BatchRewardClaim.delegate_id.ilike(delegate),
+        )
+        .order_by(BatchRewardClaim.block_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+
+    cumulative_sum = 0.0
+    cumulative_fees = []
+    for result in results:
+        cumulative_sum += float(result.fee_generated)
+        cumulative_fees.append(
+            DecimalTimeSeries(
+                value=cumulative_sum, timestamp=int(result.block_timestamp)
+            )
+        )
+
+    return cumulative_fees

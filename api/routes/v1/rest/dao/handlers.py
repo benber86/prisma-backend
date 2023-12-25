@@ -5,6 +5,7 @@ from api.logger import get_logger
 from api.models.common import Pagination
 from api.routes.v1.rest.dao.crud import (
     get_boost_breakdown,
+    get_historical_fee_accrued,
     get_user_incentives,
     get_user_ownership_votes,
     get_user_votes,
@@ -12,6 +13,7 @@ from api.routes.v1.rest.dao.crud import (
     search_ownership_proposals,
 )
 from api.routes.v1.rest.dao.models import (
+    HistoricalBoostFees,
     OrderFilter,
     OwnershipProposalDetailResponse,
     UserOwnershipVote,
@@ -148,3 +150,24 @@ async def get_user_boost_usage(
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_weekly_boost_use(CHAINS[chain], week, user))
+
+
+@router.get(
+    "/{chain}/boost/fees/{user}",
+    response_model=HistoricalBoostFees,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gets the historical amount of fees accrued over time from boost delegation for a user"
+        )
+    ),
+)
+async def get_user_boost_fees(
+    chain: str,
+    user: str,
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    data = await (get_historical_fee_accrued(CHAINS[chain], user))
+    return HistoricalBoostFees(boost=data)

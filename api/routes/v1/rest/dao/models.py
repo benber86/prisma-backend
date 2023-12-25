@@ -113,3 +113,7 @@ class WeeklyClaimDataResponse(BaseModel):
 
 class WeeklyBoostUsage(BaseModel):
     boost: list[DecimalTimeSeries]
+
+
+class HistoricalBoostFees(BaseModel):
+    boost: list[DecimalTimeSeries]
