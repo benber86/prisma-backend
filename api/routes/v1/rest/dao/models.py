@@ -97,3 +97,15 @@ class UserOwnershipVote(BaseModel):
 
 class UserOwnershipVoteResponse(BaseModel):
     votes: list[UserOwnershipVote]
+
+
+class WeeklyClaimData(BaseModel):
+    week: int
+    eligible: float
+    self_claimed: float
+    delegate_claimed: float
+    left_over: float
+
+
+class WeeklyClaimDataResponse(BaseModel):
+    claims: list[WeeklyClaimData]

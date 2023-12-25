@@ -4,6 +4,7 @@ from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.logger import get_logger
 from api.models.common import Pagination
 from api.routes.v1.rest.dao.crud import (
+    get_boost_breakdown,
     get_user_incentives,
     get_user_ownership_votes,
     get_user_votes,
@@ -15,6 +16,7 @@ from api.routes.v1.rest.dao.models import (
     UserOwnershipVote,
     UserOwnershipVoteResponse,
     UserVoteResponse,
+    WeeklyClaimDataResponse,
     WeeklyUserVoteDataResponse,
 )
 from utils.const import CHAINS
@@ -103,3 +105,23 @@ async def get_user_incentive_vote_history(
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_user_votes(CHAINS[chain], chain, user))
+
+
+@router.get(
+    "/{chain}/boost/breakdown/{user}",
+    response_model=WeeklyClaimDataResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get how much emissions a user was eligible for, how much was claimed by them or 3rd party and left over amount"
+        )
+    ),
+)
+async def get_user_claims_breakdown(
+    chain: str,
+    user: str,
+):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_boost_breakdown(CHAINS[chain], user))

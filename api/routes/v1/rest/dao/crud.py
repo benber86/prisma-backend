@@ -14,6 +14,8 @@ from api.routes.v1.rest.dao.models import (
     UserOwnershipVoteResponse,
     UserVote,
     UserVoteResponse,
+    WeeklyClaimData,
+    WeeklyClaimDataResponse,
     WeeklyUserVote,
     WeeklyUserVoteData,
     WeeklyUserVoteDataResponse,
@@ -26,6 +28,7 @@ from database.models.dao import (
     OwnershipProposal,
     OwnershipVote,
     UserWeeklyIncentivePoints,
+    WeeklyBoostData,
 )
 from utils.const import RECEIVER_MAPPINGS
 from utils.time import get_week
@@ -233,3 +236,45 @@ async def get_user_ownership_votes(
     ]
 
     return UserOwnershipVoteResponse(votes=votes)
+
+
+async def get_boost_breakdown(
+    chain_id: int, user: str
+) -> WeeklyClaimDataResponse:
+    query = (
+        select(
+            [
+                WeeklyBoostData.week,
+                func.sum(WeeklyBoostData.eligible_for).label("eligible"),
+                func.sum(WeeklyBoostData.self_claimed).label("self_claimed"),
+                func.sum(WeeklyBoostData.other_claimed).label(
+                    "delegate_claimed"
+                ),
+            ]
+        )
+        .where(
+            WeeklyBoostData.chain_id == chain_id,
+            WeeklyBoostData.user_id.ilike(user),
+        )
+        .group_by(WeeklyBoostData.week)
+    )
+
+    results = await db.fetch_all(query)
+
+    claims = [
+        WeeklyClaimData(
+            week=result.week,
+            eligible=float(result.eligible),
+            self_claimed=float(result.self_claimed),
+            delegate_claimed=float(result.delegate_claimed),
+            left_over=max(
+                0.0,
+                float(result.eligible)
+                - float(result.self_claimed)
+                - float(result.delegate_claimed),
+            ),
+        )
+        for result in results
+    ]
+
+    return WeeklyClaimDataResponse(claims=claims)
