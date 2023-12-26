@@ -28,6 +28,7 @@ WEEKLY_ACCOUNT_WEIGHTS_QUERY = """
     feePct
     frozen
     weight
+    boostEnabled
     accountWeeklyWeights
     accountWeeklyUnlocks
   }
@@ -80,6 +81,7 @@ async def sync_account_weight_data(
                     "latest_fee": account["feePct"],
                     "frozen_balance": account["frozen"],
                     "weight": account["weight"],
+                    "delegating": account["boostEnabled"],
                 },
             )
             for j, weight in enumerate(account["accountWeeklyWeights"]):

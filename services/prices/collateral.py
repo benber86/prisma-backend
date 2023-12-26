@@ -64,7 +64,7 @@ async def get_1inch_quote(sell_token: str, sell_amount: Decimal) -> Decimal:
         "amount": str(sell_amount),
         "includeGas": "false",
     }
-    time.sleep(30)
+    time.sleep(60)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params) as response:

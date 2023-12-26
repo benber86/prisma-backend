@@ -33,6 +33,7 @@ class User(Base):
     latest_fee = Column(Numeric)
     frozen_balance = Column(Numeric)
     weight = Column(Numeric)
+    delegating = Column(Boolean)
 
     stabilityPoolOperations = relationship(
         "StabilityPoolOperation", back_populates="user"

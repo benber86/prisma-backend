@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from enum import Enum
 
 from sqlalchemy import and_, desc, func, or_, select
@@ -33,8 +34,11 @@ from database.models.dao import (
     IncentiveVote,
     OwnershipProposal,
     OwnershipVote,
+    TotalWeeklyWeight,
     UserWeeklyIncentivePoints,
+    UserWeeklyWeights,
     WeeklyBoostData,
+    WeeklyEmissions,
 )
 from utils.const import RECEIVER_MAPPINGS
 from utils.time import get_week
@@ -420,49 +424,81 @@ async def get_top_delegation_users(
 async def get_emissions_data(
     chain_id: int, week: int
 ) -> AvailableAtFeeResponse:
-    query = (
+    total_weight_row = await db.execute(
+        select([TotalWeeklyWeight.weight]).where(
+            TotalWeeklyWeight.chain_id == chain_id,
+            TotalWeeklyWeight.week == week,
+        )
+    )
+    total_weight = int(total_weight_row)
+
+    emissions_row = await db.execute(
+        select([WeeklyEmissions.emissions]).where(
+            WeeklyEmissions.chain_id == chain_id, WeeklyEmissions.week == week
+        )
+    )
+    emissions = emissions_row * Decimal(1e-18)
+
+    user_data_query = (
         select(
             [
+                UserWeeklyWeights.user_id,
+                UserWeeklyWeights.weight,
+                User.latest_fee,
                 func.coalesce(
                     WeeklyBoostData.non_locking_fee,
                     WeeklyBoostData.last_applied_fee,
+                    User.latest_fee,
                 ).label("fee"),
-                func.sum(
-                    func.greatest(
-                        0,
-                        (
-                            WeeklyBoostData.eligible_for
-                            - WeeklyBoostData.total_claimed
-                        ),
-                    )
-                ).label("available_emissions"),
+                func.coalesce(WeeklyBoostData.total_claimed, 0).label(
+                    "total_claimed"
+                ),
             ]
         )
-        .where(
-            WeeklyBoostData.chain_id == chain_id,
-            WeeklyBoostData.week == week,
-            or_(
-                WeeklyBoostData.non_locking_fee < 10000,
-                and_(
-                    WeeklyBoostData.non_locking_fee.is_(None),
-                    WeeklyBoostData.last_applied_fee < 10000,
-                ),
+        .outerjoin(User, User.id == UserWeeklyWeights.user_id)
+        .outerjoin(
+            WeeklyBoostData,
+            and_(
+                WeeklyBoostData.user_id == UserWeeklyWeights.user_id,
+                WeeklyBoostData.week == week,
+                WeeklyBoostData.chain_id == chain_id,
             ),
         )
-        .group_by("fee")
-        .order_by("fee")
+        .where(
+            UserWeeklyWeights.chain_id == chain_id,
+            UserWeeklyWeights.week == week,
+            User.delegating,
+        )
     )
+    user_data_results = await db.fetch_all(user_data_query)
 
-    results = await db.fetch_all(query)
-
-    cumulative_emissions = 0.0
     emissions_data = []
-    for result in results:
-        cumulative_emissions += float(result.available_emissions)
-        emissions_data.append(
-            AvailableAtFee(
-                available=cumulative_emissions, fee=float(result.fee) / 100
-            )
+    for row in user_data_results:
+        user_weight = row.weight
+        user_fee = row.fee / 100
+        user_claimable = max(
+            0, (user_weight / total_weight * emissions) - row.total_claimed
         )
 
-    return AvailableAtFeeResponse(emissions=emissions_data)
+        emissions_data.append({"fee": user_fee, "claimable": user_claimable})
+
+    aggregated_emissions = {}
+    for data in emissions_data:
+        fee = data["fee"]
+        claimable = data["claimable"]
+        if fee not in aggregated_emissions:
+            aggregated_emissions[fee] = 0
+        aggregated_emissions[fee] += claimable
+
+    sorted_emissions = sorted(aggregated_emissions.items(), key=lambda x: x[0])
+    cumulative_emissions = 0.0
+    response_data = []
+    for fee, claimable in sorted_emissions:
+        if fee > 99:
+            continue
+        cumulative_emissions += float(claimable)
+        response_data.append(
+            AvailableAtFee(available=cumulative_emissions, fee=fee)
+        )
+
+    return AvailableAtFeeResponse(emissions=response_data)

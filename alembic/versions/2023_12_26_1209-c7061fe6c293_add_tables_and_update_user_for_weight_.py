@@ -47,6 +47,7 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('latest_fee', sa.Numeric(), nullable=True))
     op.add_column('users', sa.Column('frozen_balance', sa.Numeric(), nullable=True))
     op.add_column('users', sa.Column('weight', sa.Numeric(), nullable=True))
+    op.add_column('users', sa.Column('delegating', sa.Boolean(), nullable=True))
     # ### end Alembic commands ###
 
 
