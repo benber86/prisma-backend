@@ -10,6 +10,7 @@ from api.routes.v1.rest.dao.crud import (
     get_historical_fee_accrued,
     get_locks_unlocks,
     get_top_delegation_users,
+    get_top_lockers,
     get_user_incentives,
     get_user_ownership_votes,
     get_user_votes,
@@ -22,6 +23,7 @@ from api.routes.v1.rest.dao.models import (
     HistoricalBoostFees,
     OrderFilter,
     OwnershipProposalDetailResponse,
+    TopLockerResponse,
     UserOwnershipVote,
     UserOwnershipVoteResponse,
     UserVoteResponse,
@@ -249,3 +251,20 @@ async def get_locks(chain: str):
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_locks_unlocks(CHAINS[chain]))
+
+
+@router.get(
+    "/{chain}/boost/lockers/top/{week}/{top}",
+    response_model=TopLockerResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gets the top X addresses by weight for a given week"
+        )
+    ),
+)
+async def get_top_weight_users(chain: str, top: int, week: int):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_top_lockers(CHAINS[chain], week, top))

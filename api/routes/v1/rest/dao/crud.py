@@ -12,9 +12,11 @@ from api.routes.v1.rest.dao.models import (
     AvailableAtFeeResponse,
     DelegationUser,
     DelegationUserResponse,
+    Locker,
     OrderFilter,
     OwnershipProposalDetail,
     OwnershipProposalDetailResponse,
+    TopLockerResponse,
     UserOwnershipVote,
     UserOwnershipVoteResponse,
     UserVote,
@@ -534,3 +536,41 @@ async def get_locks_unlocks(chain_id: int) -> WeeklyWeightResponse:
     ]
 
     return WeeklyWeightResponse(emissions=weekly_weights)
+
+
+async def get_top_lockers(
+    chain_id: int, week: int, top_n: int
+) -> TopLockerResponse:
+    user_weights_query = (
+        select(
+            [User.id.label("address"), User.label, UserWeeklyWeights.weight]
+        )
+        .join(User, User.id == UserWeeklyWeights.user_id)
+        .where(
+            UserWeeklyWeights.chain_id == chain_id,
+            UserWeeklyWeights.week == week,
+        )
+        .order_by(UserWeeklyWeights.weight.desc())
+        .limit(top_n)
+    )
+
+    user_weights_results = await db.fetch_all(user_weights_query)
+
+    lockers = [
+        Locker(
+            address=result.address,
+            label=result.label,
+            weight=int(result.weight),
+        )
+        for result in user_weights_results
+    ]
+
+    total_weight_row = await db.fetch_val(
+        select([TotalWeeklyWeight.weight]).where(
+            TotalWeeklyWeight.chain_id == chain_id,
+            TotalWeeklyWeight.week == week,
+        )
+    )
+    total_weight = int(total_weight_row)
+
+    return TopLockerResponse(lockers=lockers, total_weight=total_weight)

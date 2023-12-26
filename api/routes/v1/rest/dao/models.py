@@ -147,3 +147,14 @@ class WeeklyWeight(BaseModel):
 
 class WeeklyWeightResponse(BaseModel):
     emissions: list[WeeklyWeight]
+
+
+class Locker(BaseModel):
+    address: str
+    label: str | None
+    weight: int
+
+
+class TopLockerResponse(BaseModel):
+    lockers: list[Locker]
+    total_weight: int
