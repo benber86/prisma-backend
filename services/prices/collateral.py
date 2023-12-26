@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from decimal import Decimal
 
 import aiohttp
@@ -63,15 +64,14 @@ async def get_1inch_quote(sell_token: str, sell_amount: Decimal) -> Decimal:
         "amount": str(sell_amount),
         "includeGas": "false",
     }
+    time.sleep(30)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params) as response:
                 data = await response.json()
                 return Decimal(data["toAmount"]) / sell_amount
     except Exception as e:
-        logger.error(
-            f"Error fetching cowswap quote for token {sell_token}: {e}"
-        )
+        logger.error(f"Error fetching 1inch quote for token {sell_token}: {e}")
         return Decimal(0)
 
 

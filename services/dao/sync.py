@@ -7,6 +7,7 @@ from services.celery import celery
 from services.dao.boost import sync_boost_data
 from services.dao.incentives import sync_incentive_votes
 from services.dao.ownership import sync_ownership_proposals_and_votes
+from services.dao.weight import sync_weight_data
 
 logger = logging.getLogger()
 
@@ -32,3 +33,8 @@ def back_populate_incentive_votes(chain: str, chain_id: int):
 @celery.task
 def back_populate_boost_data(chain: str, chain_id: int):
     asyncio.run(wrap_dbs(sync_boost_data)(chain, chain_id))
+
+
+@celery.task
+def back_populate_weight_data(chain: str, chain_id: int):
+    asyncio.run(wrap_dbs(sync_weight_data)(chain, chain_id))

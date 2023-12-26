@@ -50,3 +50,12 @@ async def add_user(user: str):
     user_id = user.lower()
     query = insert_ignore_query(User, {"id": user_id}, {})
     await db.execute(query)
+
+
+async def upsert_user(user_id: str, update_data: dict) -> User:
+    insert_stmt = insert(User).values(id=user_id.lower(), **update_data)
+    upsert_stmt = insert_stmt.on_conflict_do_update(
+        index_elements=["id"], set_=update_data
+    ).returning(User)
+    result = await db.execute(upsert_stmt)
+    return result

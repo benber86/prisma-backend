@@ -114,6 +114,18 @@ BOOST_DATA_SCHEDULE = {
     for chain, chain_id in CHAINS.items()
 }
 
+WEIGHT_DATA_SCHEDULE = {
+    f"sync-dao-weight-{chain}": {
+        "task": "services.dao.sync.back_populate_weight_data",
+        "schedule": timedelta(minutes=7),
+        "args": (
+            chain,
+            chain_id,
+        ),
+    }
+    for chain, chain_id in CHAINS.items()
+}
+
 CELERY_BEAT_SCHEDULE = {
     # **SUBGRAPH_SYNC_SCHEDULE,
     # **PRICE_SYNC_SCHEDULE,
@@ -124,5 +136,6 @@ CELERY_BEAT_SCHEDULE = {
     # **REVENUE_SCHEDULE,
     # **DAO_OWNERSHIP_SYNC_SCHEDULE,
     # **DAO_INCENTIVE_SYNC_SCHEDULE,
-    **BOOST_DATA_SCHEDULE,
+    # **BOOST_DATA_SCHEDULE,
+    **WEIGHT_DATA_SCHEDULE,
 }

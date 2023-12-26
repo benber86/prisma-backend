@@ -236,3 +236,41 @@ class WeeklyEmissions(Base):
             unique=True,
         ),
     )
+
+
+class UserWeeklyWeights(Base):
+    __tablename__ = "user_weekly_weights"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    user_id = Column(ForeignKey("users.id"))
+    week = Column(Integer)
+    weight = Column(Numeric)
+    unlock = Column(Numeric)
+
+    user = relationship("User")
+
+    __table_args__ = (
+        Index(
+            "idx_user_weekly_weights__week__chain_id__user_id",
+            week,
+            chain_id,
+            user_id,
+            unique=True,
+        ),
+    )
+
+
+class TotalWeeklyWeight(Base):
+    __tablename__ = "total_weekly_weights"
+    chain_id = Column(ForeignKey("chains.id"), nullable=False)
+    week = Column(Integer)
+    weight = Column(Numeric)
+    unlock = Column(Numeric)
+
+    __table_args__ = (
+        Index(
+            "idx_total_weekly_weights__week__chain_id",
+            week,
+            chain_id,
+            unique=True,
+        ),
+    )

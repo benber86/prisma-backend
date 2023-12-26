@@ -19,6 +19,7 @@ class Chain(Base):
     name = Column(String, nullable=False)
 
 
+# TODO: this should have a chain_id for cross_chain support...
 class User(Base):
     __tablename__ = "users"
 
@@ -29,6 +30,10 @@ class User(Base):
     lock_balance = Column(Numeric)
     frozen = Column(Boolean)
     label = Column(String)
+    latest_fee = Column(Numeric)
+    frozen_balance = Column(Numeric)
+    weight = Column(Numeric)
+
     stabilityPoolOperations = relationship(
         "StabilityPoolOperation", back_populates="user"
     )
