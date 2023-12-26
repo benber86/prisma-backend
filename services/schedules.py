@@ -129,7 +129,7 @@ WEIGHT_DATA_SCHEDULE = {
 ZAP_DATA_SCHEDULE = {
     f"sync-trove-zaps-{chain}": {
         "task": "services.sync.back_populate.sync_zaps",
-        "schedule": timedelta(minutes=1),
+        "schedule": timedelta(minutes=5),
         "args": (
             chain,
             chain_id,
@@ -139,16 +139,16 @@ ZAP_DATA_SCHEDULE = {
 }
 
 CELERY_BEAT_SCHEDULE = {
-    # **SUBGRAPH_SYNC_SCHEDULE,
-    # **PRICE_SYNC_SCHEDULE,
-    # **DEPTH_SCHEDULE,
-    # **HOLDERS_SCHEDULE,
-    # **IMPACT_SCHEDULE,
-    # **CVXPRISMA_SYNC_SCHEDULE,
-    # **REVENUE_SCHEDULE,
-    # **DAO_OWNERSHIP_SYNC_SCHEDULE,
-    # **DAO_INCENTIVE_SYNC_SCHEDULE,
-    # **BOOST_DATA_SCHEDULE,
-    # **WEIGHT_DATA_SCHEDULE,
-    **ZAP_DATA_SCHEDULE
+    **SUBGRAPH_SYNC_SCHEDULE,
+    **PRICE_SYNC_SCHEDULE,
+    **DEPTH_SCHEDULE,
+    **HOLDERS_SCHEDULE,
+    **IMPACT_SCHEDULE,
+    **CVXPRISMA_SYNC_SCHEDULE,
+    **REVENUE_SCHEDULE,
+    **DAO_OWNERSHIP_SYNC_SCHEDULE,
+    **DAO_INCENTIVE_SYNC_SCHEDULE,
+    **BOOST_DATA_SCHEDULE,
+    **WEIGHT_DATA_SCHEDULE,
+    **ZAP_DATA_SCHEDULE,
 }
