@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 from enum import Enum
 
+import numpy as np
 from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.orm import aliased
 from web3 import Web3
@@ -12,10 +13,12 @@ from api.routes.v1.rest.dao.models import (
     AvailableAtFeeResponse,
     DelegationUser,
     DelegationUserResponse,
+    FeeDepletionResponse,
     Locker,
     OrderFilter,
     OwnershipProposalDetail,
     OwnershipProposalDetailResponse,
+    ScatterPoint,
     TopLockerResponse,
     UserOwnershipVote,
     UserOwnershipVoteResponse,
@@ -574,3 +577,43 @@ async def get_top_lockers(
     total_weight = int(total_weight_row)
 
     return TopLockerResponse(lockers=lockers, total_weight=total_weight)
+
+
+async def get_depletion(chain_id: int, week: int) -> FeeDepletionResponse:
+    query = select(
+        [WeeklyBoostData.last_applied_fee, WeeklyBoostData.time_to_depletion]
+    ).where(
+        WeeklyBoostData.chain_id == chain_id,
+        WeeklyBoostData.week >= week,
+        WeeklyBoostData.non_locking_fee.is_(None),
+        WeeklyBoostData.last_applied_fee > 0,
+        WeeklyBoostData.last_applied_fee <= 9900,
+        WeeklyBoostData.time_to_depletion != 0,
+    )
+
+    results = await db.fetch_all(query)
+
+    scatter_points = [
+        ScatterPoint(
+            fee=float(result.last_applied_fee) / 100,
+            time_to_depletion=int(result.time_to_depletion),
+        )
+        for result in results
+    ]
+
+    fees = np.array([point.fee for point in scatter_points]).reshape(-1, 1)
+    times = np.array(
+        [point.time_to_depletion for point in scatter_points]
+    ).reshape(-1, 1)
+
+    A = np.vstack([fees.T[0], np.ones(len(fees))]).T
+    m, c = np.linalg.lstsq(A, times.T[0], rcond=None)[0]
+
+    trendline_points = [
+        ScatterPoint(fee=fee, time_to_depletion=m * fee + c)
+        for fee in list(set([point.fee for point in scatter_points]))
+    ]
+
+    return FeeDepletionResponse(
+        scatter=scatter_points, trendline=trendline_points
+    )

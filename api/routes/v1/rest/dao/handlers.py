@@ -6,6 +6,7 @@ from api.models.common import Pagination
 from api.routes.v1.rest.dao.crud import (
     get_boost_breakdown,
     get_delegation_users,
+    get_depletion,
     get_emissions_data,
     get_historical_fee_accrued,
     get_locks_unlocks,
@@ -20,6 +21,7 @@ from api.routes.v1.rest.dao.crud import (
 from api.routes.v1.rest.dao.models import (
     AvailableAtFeeResponse,
     DelegationUserResponse,
+    FeeDepletionResponse,
     HistoricalBoostFees,
     OrderFilter,
     OwnershipProposalDetailResponse,
@@ -33,6 +35,7 @@ from api.routes.v1.rest.dao.models import (
     WeeklyWeightResponse,
 )
 from utils.const import CHAINS
+from utils.time import get_week
 
 logger = get_logger(__name__)
 
@@ -268,3 +271,20 @@ async def get_top_weight_users(chain: str, top: int, week: int):
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_top_lockers(CHAINS[chain], week, top))
+
+
+@router.get(
+    "/{chain}/boost/depletion/{weeks}",
+    response_model=FeeDepletionResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gives the relationship between a user's fees and the time it took to deplete their boost for the past X weeks"
+        )
+    ),
+)
+async def get_user_depletion(chain: str, weeks: int):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    current_week = get_week(chain)
+    return await (get_depletion(CHAINS[chain], current_week - weeks))

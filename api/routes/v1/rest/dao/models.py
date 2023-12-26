@@ -158,3 +158,13 @@ class Locker(BaseModel):
 class TopLockerResponse(BaseModel):
     lockers: list[Locker]
     total_weight: int
+
+
+class ScatterPoint(BaseModel):
+    fee: float
+    time_to_depletion: int
+
+
+class FeeDepletionResponse(BaseModel):
+    scatter: list[ScatterPoint]
+    trendline: list[ScatterPoint]
