@@ -18,6 +18,7 @@ from services.sync.stability_pool import (
 from services.sync.trove_manager_snapshots import update_manager_snapshots
 from services.sync.trove_snapshots import update_trove_snapshots
 from services.sync.update_cues import get_data_for_chain
+from services.sync.zaps import update_zap_records
 from utils.const import CHAINS, ethereum
 
 logger = logging.getLogger()
@@ -40,6 +41,11 @@ def back_populate_all():
 @celery.task
 def back_populate_chain(chain: str, chain_id: int):
     asyncio.run(wrap_dbs(sync_from_subgraph)(chain, chain_id))
+
+
+@celery.task
+def sync_zaps(chain: str, chain_id: int):
+    asyncio.run(wrap_dbs(update_zap_records)(chain, chain_id))
 
 
 async def _update_stability_pool(

@@ -3,11 +3,13 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 
 from api.fastapi import BaseMethodDescription, get_router_method_settings
+from api.models.common import Pagination
 from api.routes.v1.rest.collateral.crud import (
     get_gecko_supply,
     get_lsd_share,
     get_market_prices,
     get_oracle_prices,
+    get_zaps,
 )
 from api.routes.v1.rest.collateral.models import (
     CollateralGeneralInfo,
@@ -15,6 +17,8 @@ from api.routes.v1.rest.collateral.models import (
     CollateralPriceImpact,
     CollateralPriceImpactResponse,
     CollateralPrices,
+    OrderFilter,
+    StakeZapResponse,
 )
 from api.routes.v1.rest.trove_managers.models import FilterSet
 from database.queries.collateral import (
@@ -108,3 +112,27 @@ async def get_collateral_info(chain: str, collateral: str):
             risk=risk,
         )
     )
+
+
+@router.get(
+    "/{chain}/{collateral}/zaps",
+    response_model=StakeZapResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(summary="Get all stake zaps for a collateral")
+    ),
+)
+async def get_collateral_zaps(
+    chain: str,
+    collateral: str,
+    pagination: Pagination = Depends(),
+    order: OrderFilter = Depends(),
+):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    chain_id = CHAINS[chain]
+    collateral_id = await get_collateral_id_by_chain_and_address(
+        chain_id, collateral
+    )
+    if not collateral_id:
+        raise HTTPException(status_code=404, detail="Collateral not found")
+    return await get_zaps(chain_id, collateral_id, pagination, order)

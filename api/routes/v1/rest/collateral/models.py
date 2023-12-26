@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel
 
 from api.models.common import DecimalTimeSeries
@@ -27,3 +29,29 @@ class CollateralGeneralInfo(BaseModel):
 
 class CollateralGeneralInfoReponse(BaseModel):
     info: CollateralGeneralInfo
+
+
+class StakeZapInfo(BaseModel):
+    amount: float
+    block_timestamp: int
+    block_number: int
+    tx_hash: str
+
+
+class StakeZapResponse(BaseModel):
+    zaps: list[StakeZapInfo]
+    count: int
+    total_amount: float
+
+
+class OrderBy(Enum):
+    creator = "amount"
+    block_timestamp = "block_timestamp"
+
+
+class OrderFilter(BaseModel):
+    order_by: OrderBy = OrderBy.block_timestamp
+    desc: bool = True
+
+    class Config:
+        use_enum_values = True

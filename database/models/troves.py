@@ -433,3 +433,26 @@ class PriceRecord(Base):
             unique=True,
         ),
     )
+
+
+class ZapStakes(Base):
+    __tablename__ = "zap_stakes"
+
+    collateral_id = Column(ForeignKey("collaterals.id"))
+    amount = Column(Numeric)
+    index = Column(Integer)
+    block_number = Column(Numeric)
+    block_timestamp = Column(Numeric)
+    transaction_hash = Column(String)
+
+    collateral = relationship("Collateral")
+
+    __table_args__ = (
+        Index(
+            "idx_zap_stakes__collateral_id__index__block_timestamp",
+            collateral_id,
+            index,
+            block_timestamp,
+            unique=True,
+        ),
+    )
