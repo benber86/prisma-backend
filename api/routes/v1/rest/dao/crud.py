@@ -25,6 +25,8 @@ from api.routes.v1.rest.dao.models import (
     WeeklyUserVote,
     WeeklyUserVoteData,
     WeeklyUserVoteDataResponse,
+    WeeklyWeight,
+    WeeklyWeightResponse,
 )
 from database.engine import db
 from database.models.common import User
@@ -502,3 +504,33 @@ async def get_emissions_data(
         )
 
     return AvailableAtFeeResponse(emissions=response_data)
+
+
+async def get_locks_unlocks(chain_id: int) -> WeeklyWeightResponse:
+    query = (
+        select(
+            [
+                TotalWeeklyWeight.week,
+                TotalWeeklyWeight.weight,
+                TotalWeeklyWeight.unlock,
+            ]
+        )
+        .where(
+            TotalWeeklyWeight.chain_id == chain_id,
+            or_(TotalWeeklyWeight.weight != 0, TotalWeeklyWeight.unlock != 0),
+        )
+        .order_by(TotalWeeklyWeight.week)
+    )
+
+    results = await db.fetch_all(query)
+
+    weekly_weights = [
+        WeeklyWeight(
+            week=result.week,
+            weight=int(result.weight),
+            unlocks=int(result.unlock),
+        )
+        for result in results
+    ]
+
+    return WeeklyWeightResponse(emissions=weekly_weights)

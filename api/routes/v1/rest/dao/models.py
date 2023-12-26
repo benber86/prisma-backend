@@ -137,3 +137,13 @@ class AvailableAtFee(BaseModel):
 
 class AvailableAtFeeResponse(BaseModel):
     emissions: list[AvailableAtFee]
+
+
+class WeeklyWeight(BaseModel):
+    week: int
+    weight: int
+    unlocks: int
+
+
+class WeeklyWeightResponse(BaseModel):
+    emissions: list[WeeklyWeight]

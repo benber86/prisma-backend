@@ -8,6 +8,7 @@ from api.routes.v1.rest.dao.crud import (
     get_delegation_users,
     get_emissions_data,
     get_historical_fee_accrued,
+    get_locks_unlocks,
     get_top_delegation_users,
     get_user_incentives,
     get_user_ownership_votes,
@@ -27,6 +28,7 @@ from api.routes.v1.rest.dao.models import (
     WeeklyBoostUsage,
     WeeklyClaimDataResponse,
     WeeklyUserVoteDataResponse,
+    WeeklyWeightResponse,
 )
 from utils.const import CHAINS
 
@@ -230,3 +232,20 @@ async def get_emission_fees(chain: str, week: int):
         raise HTTPException(status_code=404, detail="Chain not found")
 
     return await (get_emissions_data(CHAINS[chain], week))
+
+
+@router.get(
+    "/{chain}/boost/locks",
+    response_model=WeeklyWeightResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Gets the amount of weights and unlocks for available weeks"
+        )
+    ),
+)
+async def get_locks(chain: str):
+
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+
+    return await (get_locks_unlocks(CHAINS[chain]))
