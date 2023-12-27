@@ -138,6 +138,15 @@ ZAP_DATA_SCHEDULE = {
     for chain, chain_id in CHAINS.items()
 }
 
+LABEL_SCHEDULE = {
+    f"label-users-{chain}": {
+        "task": "utils.labels.label_users.update_labels",
+        "schedule": timedelta(hours=1),
+        "args": (chain,),
+    }
+    for chain, chain_id in CHAINS.items()
+}
+
 CELERY_BEAT_SCHEDULE = {
     **SUBGRAPH_SYNC_SCHEDULE,
     **PRICE_SYNC_SCHEDULE,
@@ -151,4 +160,5 @@ CELERY_BEAT_SCHEDULE = {
     **BOOST_DATA_SCHEDULE,
     **WEIGHT_DATA_SCHEDULE,
     **ZAP_DATA_SCHEDULE,
+    **LABEL_SCHEDULE,
 }

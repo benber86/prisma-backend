@@ -21,6 +21,7 @@ celery.conf.update(
         "services.prices.mkusd_holders",
         "services.prices.liquidity_depth",
         "services.prices.collateral",
+        "utils.labels.label_users",
     ],
     timezone="UTC",
     task_serializer="json",

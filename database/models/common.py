@@ -35,9 +35,9 @@ class User(Base):
     weight = Column(Numeric)
     delegating = Column(Boolean)
 
-    # stabilityPoolOperations = relationship(
-    #     "StabilityPoolOperation", back_populates="user"
-    # )
+    stabilityPoolOperations = relationship(
+        "StabilityPoolOperation", back_populates="user"
+    )
 
 
 class RevenueSnapshot(Base):
