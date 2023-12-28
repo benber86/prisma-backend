@@ -141,7 +141,7 @@ ZAP_DATA_SCHEDULE = {
 LABEL_SCHEDULE = {
     f"label-users-{chain}": {
         "task": "utils.labels.label_users.update_labels",
-        "schedule": timedelta(hours=1),
+        "schedule": timedelta(days=5),
         "args": (chain,),
     }
     for chain, chain_id in CHAINS.items()
