@@ -233,10 +233,9 @@ async def update_trove_snapshots(
         )
         snapshot_data = await async_grt_query(endpoint=endpoint, query=query)
         if not snapshot_data:
-            logger.error(
+            raise Exception(
                 f"Did not receive any data from the graph on chain {chain} when query for trove snapshots {query}"
             )
-            return
         for snapshot in snapshot_data["troveSnapshots"]:
             trove_id = await _update_trove(manager_id, snapshot["trove"])
 
