@@ -13,6 +13,11 @@ class FilterSet(BaseModel):
         use_enum_values = True
 
 
+class VoterList(BaseModel):
+    voter: str
+    weight: int
+
+
 class OwnershipProposalDetail(BaseModel):
     creator: str
     creator_label: str | None
@@ -24,6 +29,7 @@ class OwnershipProposalDetail(BaseModel):
     received_weight: int
     can_execute_after: int
     vote_count: int
+    voters: list[VoterList]
     execution_tx: str
     block_number: int
     block_timestamp: int

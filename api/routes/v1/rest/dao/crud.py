@@ -24,6 +24,7 @@ from api.routes.v1.rest.dao.models import (
     UserOwnershipVoteResponse,
     UserVote,
     UserVoteResponse,
+    VoterList,
     WeeklyBoostUsage,
     WeeklyClaimData,
     WeeklyClaimDataResponse,
@@ -58,8 +59,17 @@ async def search_ownership_proposals(
 ) -> OwnershipProposalDetailResponse:
 
     base_query = (
-        select([OwnershipProposal, User.label.label("creator_label")])
+        select(
+            [
+                OwnershipProposal,
+                User.label.label("creator_label"),
+                OwnershipVote,
+            ]
+        )
         .join(User, OwnershipProposal.creator_id == User.id)
+        .outerjoin(
+            OwnershipVote, OwnershipProposal.id == OwnershipVote.proposal_id
+        )
         .where(OwnershipProposal.chain_id == chain_id)
     )
 
@@ -89,19 +99,28 @@ async def search_ownership_proposals(
 
     results = await db.fetch_all(query_with_pagination)
 
-    proposals = []
+    proposals = {}
     for result in results:
-        result_dict = dict(result)
-        result_dict["creator"] = Web3.to_checksum_address(
-            result_dict["creator_id"]
-        )
-        if isinstance(result_dict["status"], Enum):
-            result_dict["status"] = result_dict["status"].value
-        proposal = OwnershipProposalDetail(**result_dict)
-        proposals.append(proposal)
+        proposal_id = result["id"]
+        if proposal_id not in proposals:
+            proposal_data = dict(result)
+            proposal_data["voters"] = []
+            proposal_data["creator"] = Web3.to_checksum_address(
+                proposal_data["creator_id"]
+            )
+            if isinstance(proposal_data["status"], Enum):
+                proposal_data["status"] = proposal_data["status"].value
+            proposals[proposal_id] = OwnershipProposalDetail(**proposal_data)
+
+        if result["voter_id"]:
+            voter_data = {
+                "voter": Web3.to_checksum_address(result["voter_id"]),
+                "weight": int(result["weight"]),
+            }
+            proposals[proposal_id].voters.append(VoterList(**voter_data))
 
     return OwnershipProposalDetailResponse(
-        proposals=proposals, count=total_count
+        proposals=list(proposals.values()), count=total_count
     )
 
 
