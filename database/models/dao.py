@@ -39,6 +39,7 @@ class OwnershipProposal(Base):
     can_execute_after = Column(Integer)
     vote_count = Column(Integer)
     execution_tx = Column(String)
+    execution_timestamp = Column(Integer)
 
     block_number = Column(Numeric)
     block_timestamp = Column(Numeric)

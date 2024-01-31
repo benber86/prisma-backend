@@ -34,6 +34,7 @@ OWNERSHIP_PROPOSAL_QUERY = """
     voteCount
     execution {
       transactionHash
+      blockTimestamp
     }
     blockNumber
     blockTimestamp
@@ -107,6 +108,7 @@ async def sync_ownership_proposals_and_votes(
                 "can_execute_after": int(proposal["canExecuteAfter"]),
                 "vote_count": int(proposal["voteCount"]),
                 "execution_tx": proposal["execution"]["transactionHash"],
+                "execution_timestamp": proposal["execution"]["blockTimestamp"],
                 "data": proposal["payload"],
                 "week": int(proposal["week"]),
                 "status": _str_to_proposal_status_enum(proposal["status"]),
