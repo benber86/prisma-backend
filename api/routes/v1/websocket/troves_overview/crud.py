@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import String, func, select
 
 from api.routes.v1.websocket.troves_overview.models import TroveManagerDetails
 from database.engine import db
@@ -14,9 +14,16 @@ async def get_trove_manager_details(
     chain_id: int,
 ) -> list[TroveManagerDetails]:
 
+    unique_symbol = func.concat(
+        Collateral.symbol,
+        func.cast(" (", String),
+        func.substr(func.cast(TroveManager.address, String), 1, 6),
+        func.cast(")", String),
+    ).label("unique_symbol")
+
     query = (
         select(
-            Collateral.symbol.label("name"),
+            unique_symbol.label("name"),
             TroveManager.address.label("address"),
             Collateral.address.label("collateral"),
             TroveManagerSnapshot.total_collateral_usd.label("tvl"),
