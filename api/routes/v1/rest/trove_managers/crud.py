@@ -325,18 +325,24 @@ async def get_historical_collateral_usd(
         func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
         * SECONDS_IN_DAY
     )
+    unique_symbol = func.concat(
+        Collateral.symbol,
+        func.cast(" (", String),
+        func.substr(func.cast(TroveManager.address, String), 1, 6),
+        func.cast(")", String),
+    ).label("unique_symbol")
 
     subquery = (
         select(
-            Collateral.symbol,
+            unique_symbol,
             rounded_timestamp.label("rounded_date"),
             func.max(TroveManagerSnapshot.total_collateral_usd).label(
                 "max_collateral_usd"
             ),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        # .join(Collateral, Collateral.manager_id == TroveManager.id)
-        .group_by(Collateral.symbol, rounded_timestamp)
+        .join(Collateral, Collateral.id == TroveManager.collateral_id)
+        .group_by(unique_symbol, rounded_timestamp)
         .filter(
             (TroveManager.chain_id == chain_id)
             & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
@@ -350,7 +356,9 @@ async def get_historical_collateral_usd(
 
     df = pd.DataFrame(trove_data_dict)
     df_pivot = df.pivot(
-        index="rounded_date", columns="symbol", values="max_collateral_usd"
+        index="rounded_date",
+        columns="unique_symbol",
+        values="max_collateral_usd",
     )
     df_pivot.ffill(inplace=True)
     df_pivot.fillna(0, inplace=True)

@@ -19,6 +19,7 @@ from database.engine import db
 from database.models.troves import (
     Collateral,
     Trove,
+    TroveManager,
     TroveManagerSnapshot,
     TroveSnapshot,
 )
@@ -51,7 +52,8 @@ async def search_for_troves(
 
     collateral_price = await db.fetch_val(
         select([Collateral.latest_price])
-        .where(Collateral.manager_id == manager_id)
+        .join(TroveManager, TroveManager.collateral_id == Collateral.id)
+        .where(TroveManager.id == manager_id)
         .order_by(desc(Collateral.latest_price))
         .limit(1)
     )
@@ -92,6 +94,7 @@ async def search_for_troves(
         )
         .join(first_snapshot, first_snapshot.trove_id == Trove.id)
         .join(last_snapshot, last_snapshot.trove_id == Trove.id)
+        .join(TroveManager, TroveManager.id == Trove.manager_id)
         .where(Trove.manager_id == manager_id)
         .group_by(Trove.id)
     )
@@ -391,7 +394,8 @@ async def get_trove_details(
 
     collateral_price = await db.fetch_val(
         select([Collateral.latest_price])
-        .where(Collateral.manager_id == manager_id)
+        .join(TroveManager, TroveManager.collateral_id == Collateral.id)
+        .where(TroveManager.id == manager_id)
         .order_by(desc(Collateral.latest_price))
         .limit(1)
     )
@@ -411,6 +415,7 @@ async def get_trove_details(
             ]
         )
         .join(trove_snapshot, trove_snapshot.trove_id == Trove.id)
+        .join(TroveManager, TroveManager.id == Trove.manager_id)
         .where(
             and_(
                 Trove.manager_id == manager_id, Trove.owner_id.ilike(owner_id)

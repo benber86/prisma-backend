@@ -31,7 +31,8 @@ async def get_trove_manager_details(
             TroveManagerSnapshot.closed_troves.label("closed_troves"),
             TroveManagerSnapshot.redeemed_troves.label("red_troves"),
         )
-        .join(TroveManager, TroveManager.id == Collateral.manager_id)
+        .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
+        .join(Collateral, Collateral.id == TroveManager.collateral_id)
         .join(
             TroveManagerSnapshot,
             TroveManagerSnapshot.manager_id == TroveManager.id,
