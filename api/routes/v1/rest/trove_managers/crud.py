@@ -192,7 +192,6 @@ async def get_open_troves_overview(
     results_dict = [dict(row) for row in results]
 
     df = pd.DataFrame(results_dict)
-    print(df)
     df_pivot = df.pivot(
         index="rounded_date", columns="unique_symbol", values="max_open_troves"
     )

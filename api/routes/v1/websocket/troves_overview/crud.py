@@ -34,10 +34,6 @@ async def get_trove_manager_details(
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
         .join(Collateral, Collateral.id == TroveManager.collateral_id)
         .join(
-            TroveManagerSnapshot,
-            TroveManagerSnapshot.manager_id == TroveManager.id,
-        )
-        .join(
             TroveManagerParameter,
             TroveManagerParameter.id == TroveManagerSnapshot.parameters_id,
         )
