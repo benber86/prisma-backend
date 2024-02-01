@@ -43,10 +43,7 @@ class Collateral(Base):
     decimals = Column(Integer)
     symbol = Column(String)
     latest_price = Column(Numeric)
-    manager_id = Column(ForeignKey("trove_managers.id"))
-    manager = relationship(
-        "TroveManager", back_populates="collateral", uselist=False
-    )
+    managers = relationship("TroveManager", back_populates="collateral")
     chain = relationship("Chain")
     stability_pool_id = Column(ForeignKey("stability_pool.id"))
     stability_pool = relationship(
@@ -105,9 +102,8 @@ class TroveManager(Base):
     block_timestamp = Column(Numeric)
     transaction_hash = Column(String)
 
-    collateral = relationship(
-        "Collateral", back_populates="manager", uselist=False
-    )
+    collateral_id = Column(ForeignKey("collaterals.id"))
+    collateral = relationship("Collateral", back_populates="managers")
     chain = relationship("Chain")
     troves = relationship("Trove", back_populates="manager")
     snapshots = relationship("TroveManagerSnapshot", back_populates="manager")

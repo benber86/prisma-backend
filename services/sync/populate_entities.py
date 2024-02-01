@@ -101,11 +101,33 @@ async def insert_main_entities(chain: str, chain_id: int) -> ChainData | None:
     manager_data: dict[int, TroveManagerData] = {}
     collateral_data: dict[int, CollateralData] = {}
     for manager in entity_data["troveManagers"]:
+
+        # Create collateral for the manager
+        collateral = manager["collateral"]
+        indexes = {"chain_id": chain_id, "address": collateral["id"]}
+        data = {
+            "name": collateral["name"],
+            "decimals": collateral["decimals"],
+            "symbol": collateral["symbol"],
+            "latest_price": collateral["latestPrice"],
+            "stability_pool_id": pool_id,
+        }
+        query = upsert_query(
+            Collateral, indexes, data, return_columns=[Collateral.id]
+        )
+        collateral_id = await db.execute(query)
+        if not collateral_id:
+            raise Exception(
+                f"Could not create entry for collateral ID: {manager['id']}"
+            )
+
+        # Create the manager entry
         indexes = {"chain_id": chain_id, "address": manager["id"]}
         data = {
             "price_feed": manager["priceFeed"],
             "sunsetting": manager["sunsetting"],
             "trove_snapshots_count": manager["troveSnapshotsCount"],
+            "collateral_id": collateral_id,
             "snapshots_count": manager["snapshotsCount"],
             "block_number": manager["blockNumber"],
             "block_timestamp": manager["blockTimestamp"],
@@ -123,26 +145,6 @@ async def insert_main_entities(chain: str, chain_id: int) -> ChainData | None:
             trove_snapshots_count=manager["troveSnapshotsCount"],
             snapshots_count=manager["snapshotsCount"],
         )
-
-        # Create collateral for the manager
-        collateral = manager["collateral"]
-        indexes = {"chain_id": chain_id, "address": collateral["id"]}
-        data = {
-            "name": collateral["name"],
-            "decimals": collateral["decimals"],
-            "symbol": collateral["symbol"],
-            "latest_price": collateral["latestPrice"],
-            "manager_id": manager_id,
-            "stability_pool_id": pool_id,
-        }
-        query = upsert_query(
-            Collateral, indexes, data, return_columns=[Collateral.id]
-        )
-        collateral_id = await db.execute(query)
-        if not collateral_id:
-            raise Exception(
-                f"Could not create entry for collateral ID: {manager['id']}"
-            )
         collateral_data[collateral_id] = CollateralData(
             latest_price=float(collateral["latestPrice"])
         )

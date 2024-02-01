@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from aiocache import Cache, cached
-from sqlalchemy import and_, case, desc, distinct, func, select
+from sqlalchemy import String, and_, case, desc, distinct, func, select
 
 from api.models.common import (
     DecimalLabelledSeries,
@@ -46,21 +46,24 @@ async def get_historical_collateral_ratios(
         func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
         * SECONDS_IN_DAY
     )
+    unique_symbol = func.concat(
+        Collateral.symbol,
+        func.cast(" (", String),
+        func.substr(func.cast(TroveManager.address, String), 1, 6),
+        func.cast(")", String),
+    ).label("unique_symbol")
 
     subquery = (
         select(
-            Collateral.symbol,
+            unique_symbol,
             rounded_timestamp.label("rounded_date"),
             func.max(TroveManagerSnapshot.collateral_ratio).label(
                 "max_collateral_ratio"
             ),
         )
-        .join(
-            Collateral,
-            Collateral.manager_id == TroveManagerSnapshot.manager_id,
-        )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .group_by(Collateral.symbol, rounded_timestamp)
+        .join(Collateral, Collateral.id == TroveManager.collateral_id)
+        .group_by(unique_symbol, rounded_timestamp)
         .filter(
             (TroveManagerSnapshot.block_timestamp >= start_timestamp)
             & (TroveManager.chain_id == chain_id)
@@ -74,14 +77,15 @@ async def get_historical_collateral_ratios(
 
     markets_data: dict[str, list[DecimalTimeSeries]] = {}
     for r in results:
-        if r.symbol not in markets_data:
-            markets_data[r.symbol] = []
+        symbol = r.unique_symbol
+        if symbol not in markets_data:
+            markets_data[symbol] = []
         if float(r.max_collateral_ratio) == 0:
             continue
         data_point = DecimalTimeSeries(
             value=float(r.max_collateral_ratio), timestamp=r.rounded_date
         )
-        markets_data[r.symbol].append(data_point)
+        markets_data[symbol].append(data_point)
 
     formatted_data = [
         HistoricalTroveManagerData(manager=market, data=data)
@@ -159,22 +163,28 @@ async def get_open_troves_overview(
         func.floor(TroveManagerSnapshot.block_timestamp / SECONDS_IN_DAY)
         * SECONDS_IN_DAY
     )
+    unique_symbol = func.concat(
+        Collateral.symbol,
+        func.cast(" (", String),
+        func.substr(func.cast(TroveManager.address, String), 1, 6),
+        func.cast(")", String),
+    ).label("unique_symbol")
 
     query = (
         select(
-            Collateral.symbol,
+            unique_symbol,
             rounded_timestamp.label("rounded_date"),
             func.max(TroveManagerSnapshot.open_troves).label(
                 "max_open_troves"
             ),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .join(Collateral, Collateral.manager_id == TroveManager.id)
+        .join(Collateral, Collateral.id == TroveManager.collateral_id)
         .filter(
             (TroveManager.chain_id == chain_id)
             & (TroveManagerSnapshot.block_timestamp >= start_timestamp)
         )
-        .group_by(Collateral.symbol, rounded_timestamp)
+        .group_by(unique_symbol, rounded_timestamp)
     )
 
     results = await db.fetch_all(query)
@@ -182,8 +192,9 @@ async def get_open_troves_overview(
     results_dict = [dict(row) for row in results]
 
     df = pd.DataFrame(results_dict)
+    print(df)
     df_pivot = df.pivot(
-        index="rounded_date", columns="symbol", values="max_open_troves"
+        index="rounded_date", columns="unique_symbol", values="max_open_troves"
     )
     df_pivot.ffill(inplace=True)
 
@@ -193,7 +204,7 @@ async def get_open_troves_overview(
         HistoricalOpenedTroves(
             manager=trove_name,
             data=[
-                DecimalTimeSeries(timestamp=date, value=value)
+                DecimalTimeSeries(timestamp=date, value=value if value else 0)
                 for date, value in trove_data.items()
             ],
         )
@@ -324,7 +335,7 @@ async def get_historical_collateral_usd(
             ),
         )
         .join(TroveManager, TroveManager.id == TroveManagerSnapshot.manager_id)
-        .join(Collateral, Collateral.manager_id == TroveManager.id)
+        # .join(Collateral, Collateral.manager_id == TroveManager.id)
         .group_by(Collateral.symbol, rounded_timestamp)
         .filter(
             (TroveManager.chain_id == chain_id)
