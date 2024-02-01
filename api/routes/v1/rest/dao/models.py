@@ -31,6 +31,7 @@ class OwnershipProposalDetail(BaseModel):
     vote_count: int
     voters: list[VoterList]
     execution_tx: str
+    execution_timestamp: int | None
     block_number: int
     block_timestamp: int
     transaction_hash: str

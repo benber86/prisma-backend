@@ -52,55 +52,57 @@ from utils.const import RECEIVER_MAPPINGS
 from utils.time import get_week
 
 
+async def _get_count(chain_id: int, order: OrderFilter) -> int:
+
+    count_query = select([func.count()]).select_from(
+        select([OwnershipProposal.id])
+        .where(OwnershipProposal.chain_id == chain_id)
+        .alias("subquery")
+    )
+    if order.creator_filter:
+        count_query = count_query.where(
+            OwnershipProposal.creator_id == order.creator_filter
+        )
+    if order.decode_data_filter:
+        count_query = count_query.where(
+            OwnershipProposal.decode_data == order.decode_data_filter
+        )
+    return await db.fetch_val(count_query)
+
+
 async def search_ownership_proposals(
     chain_id: int,
     pagination: Pagination,
     order: OrderFilter,
 ) -> OwnershipProposalDetailResponse:
 
-    base_query = (
-        select(
-            [
-                OwnershipProposal,
-                User.label.label("creator_label"),
-                OwnershipVote,
-            ]
-        )
+    proposal_query = (
+        select([OwnershipProposal, User.label.label("creator_label")])
         .join(User, OwnershipProposal.creator_id == User.id)
-        .outerjoin(
-            OwnershipVote, OwnershipProposal.id == OwnershipVote.proposal_id
-        )
         .where(OwnershipProposal.chain_id == chain_id)
     )
-
     if order.creator_filter:
-        base_query = base_query.where(
+        proposal_query = proposal_query.where(
             OwnershipProposal.creator_id == order.creator_filter
         )
     if order.decode_data_filter:
-        base_query = base_query.where(
+        proposal_query = proposal_query.where(
             OwnershipProposal.decode_data == order.decode_data_filter
         )
 
-    count_query = select([func.count()]).select_from(
-        base_query.alias("subquery")
-    )
-    total_count = await db.fetch_val(count_query)
-
     order_column = getattr(OwnershipProposal, order.order_by)  # type: ignore
     if order.desc:
-        base_query = base_query.order_by(order_column.desc())
+        proposal_query = proposal_query.order_by(order_column.desc())
     else:
-        base_query = base_query.order_by(order_column)
+        proposal_query = proposal_query.order_by(order_column)
 
     items_per_page = pagination.items
     offset = (pagination.page - 1) * items_per_page
-    query_with_pagination = base_query.limit(items_per_page).offset(offset)
+    proposal_query = proposal_query.limit(items_per_page).offset(offset)
 
-    results = await db.fetch_all(query_with_pagination)
-
+    proposal_results = await db.fetch_all(proposal_query)
     proposals = {}
-    for result in results:
+    for result in proposal_results:
         proposal_id = result["id"]
         if proposal_id not in proposals:
             proposal_data = dict(result)
@@ -112,12 +114,22 @@ async def search_ownership_proposals(
                 proposal_data["status"] = proposal_data["status"].value
             proposals[proposal_id] = OwnershipProposalDetail(**proposal_data)
 
-        if result["voter_id"]:
-            voter_data = {
-                "voter": Web3.to_checksum_address(result["voter_id"]),
-                "weight": int(result["weight"]),
-            }
-            proposals[proposal_id].voters.append(VoterList(**voter_data))
+    proposal_ids = list(proposals.keys())
+    if proposal_ids:
+        vote_query = select([OwnershipVote]).where(
+            OwnershipVote.proposal_id.in_(proposal_ids)
+        )
+        vote_results = await db.fetch_all(vote_query)
+        for vote in vote_results:
+            proposal_id = vote["proposal_id"]
+            if proposal_id in proposals:
+                voter_data = {
+                    "voter": Web3.to_checksum_address(vote["voter_id"]),
+                    "weight": int(vote["weight"]),
+                }
+                proposals[proposal_id].voters.append(VoterList(**voter_data))
+
+    total_count = await _get_count(chain_id, order)
 
     return OwnershipProposalDetailResponse(
         proposals=list(proposals.values()), count=total_count
