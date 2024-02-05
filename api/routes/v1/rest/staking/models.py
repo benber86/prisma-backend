@@ -45,6 +45,10 @@ class StakingTvlResponse(BaseModel):
     tvl: list[DecimalTimeSeries]
 
 
+class StakingTotalSupplyResponse(BaseModel):
+    supply: list[DecimalTimeSeries]
+
+
 class StakingSnapshotModel(BaseModel):
     token_balance: float
     token_supply: float

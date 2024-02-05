@@ -18,6 +18,7 @@ from api.routes.v1.rest.staking.models import (
     SingleOperation,
     StakingSnapshotModel,
     StakingSnapshotsResponse,
+    StakingTotalSupplyResponse,
     StakingTvlResponse,
     UserDetails,
 )
@@ -121,6 +122,47 @@ async def get_aggregated_tvl(
     ]
 
     return StakingTvlResponse(tvl=tvl_timeseries)
+
+
+@cached(ttl=60, cache=Cache.MEMORY)
+async def get_aggregated_supply(
+    filter_set: FilterSet, staking_contract: str = CVXPRISMA_STAKING
+) -> StakingTotalSupplyResponse:
+    start_timestamp = apply_period(filter_set.period)
+
+    rounded_timestamp = func.date_trunc(
+        filter_set.groupby, func.to_timestamp(StakingSnapshot.timestamp)
+    )
+
+    query = (
+        select(
+            [
+                func.avg(StakingSnapshot.token_supply).label("token_supply"),
+                func.extract("epoch", rounded_timestamp).label("timestamp"),
+            ]
+        )
+        .where(
+            and_(
+                StakingSnapshot.timestamp >= start_timestamp,
+                StakingSnapshot.staking_id.ilike(
+                    staking_contract
+                ),  # Filter by staking_contract
+            )
+        )
+        .group_by(rounded_timestamp)
+        .order_by(rounded_timestamp)
+    )
+
+    results = await db.fetch_all(query)
+
+    supply_timeseries = [
+        DecimalTimeSeries(
+            value=result["token_supply"], timestamp=int(result["timestamp"])
+        )
+        for result in results
+    ]
+
+    return StakingTotalSupplyResponse(supply=supply_timeseries)
 
 
 @cached(ttl=60, cache=Cache.MEMORY)

@@ -4,6 +4,7 @@ from api.fastapi import BaseMethodDescription, get_router_method_settings
 from api.logger import get_logger
 from api.routes.v1.rest.staking.crud import (
     get_aggregated_flow,
+    get_aggregated_supply,
     get_aggregated_tvl,
     get_snapshots,
     get_staking_balance_histogram,
@@ -15,6 +16,7 @@ from api.routes.v1.rest.staking.models import (
     FilterSet,
     PeriodFilterSet,
     StakingSnapshotsResponse,
+    StakingTotalSupplyResponse,
     StakingTvlResponse,
     UserDetails,
 )
@@ -48,6 +50,20 @@ async def get_staking_flow(contract: str, filter_set: FilterSet = Depends()):
 async def get_staking_tvl(contract: str, filter_set: FilterSet = Depends()):
 
     return await get_aggregated_tvl(filter_set, contract)
+
+
+@router.get(
+    "/{contract}/supply",
+    response_model=StakingTotalSupplyResponse,
+    **get_router_method_settings(
+        BaseMethodDescription(
+            summary="Get historical total supply of staking token"
+        )
+    ),
+)
+async def get_staking_supply(contract: str, filter_set: FilterSet = Depends()):
+
+    return await get_aggregated_supply(filter_set, contract)
 
 
 @router.get(
