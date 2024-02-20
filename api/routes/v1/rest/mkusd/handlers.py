@@ -10,11 +10,13 @@ from api.routes.v1.rest.mkusd.crud import (
     get_price,
     get_price_histogram,
     get_price_history,
+    get_supply_history,
     get_two_percent,
     get_volume,
 )
 from api.routes.v1.rest.mkusd.models import (
     DepthResponse,
+    HistoricalSupply,
     HoldersResponse,
     PriceHistogramResponse,
     PriceResponse,
@@ -46,6 +48,20 @@ async def get_mkusd_price_history(
     return PriceResponse(
         prices=await get_price_history(chain_id, filter_set.period)
     )
+
+
+@router.get(
+    "/{chain}/supply",
+    response_model=HistoricalSupply,
+    **get_router_method_settings(
+        BaseMethodDescription(summary="Get historical daily supply")
+    ),
+)
+async def get_mkusd_supply_history(chain: str):
+    if chain not in CHAINS:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    chain_id = CHAINS[chain]
+    return HistoricalSupply(supply=await get_supply_history(chain_id))
 
 
 @router.get(

@@ -20,6 +20,10 @@ class HoldersResponse(BaseModel):
     holders: list[DecimalLabelledSeries]
 
 
+class HistoricalSupply(BaseModel):
+    supply: list[DecimalTimeSeries]
+
+
 class DepthResponse(BaseModel):
     depth: list[PoolDepth]
 
