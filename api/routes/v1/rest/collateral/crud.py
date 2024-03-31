@@ -81,10 +81,10 @@ async def get_gecko_supply(chain: str, token: str) -> float:
 @cached(ttl=3600, cache=Cache.MEMORY)
 async def get_lsd_share(token: str) -> float:
     token_to_dl_slug = {
-        CBETH: "Coinbase Wrapped Staked ETH",
-        RETH: "Rocket Pool",
-        SFRXETH: "Frax Ether",
-        WSTETH: "Lido",
+        CBETH.lower(): "Coinbase Wrapped Staked ETH",
+        RETH.lower(): "Rocket Pool",
+        SFRXETH.lower(): "Frax Ether",
+        WSTETH.lower(): "Lido",
     }
     url = f"https://defillama-datasets.llama.fi/lite/protocols2?b=2"
     try:

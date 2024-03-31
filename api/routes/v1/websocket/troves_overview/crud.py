@@ -29,7 +29,9 @@ async def get_trove_manager_details(
             TroveManagerSnapshot.total_collateral_usd.label("tvl"),
             TroveManagerSnapshot.total_debt.label("debt"),
             TroveManagerParameter.max_system_debt.label("debt_cap"),
-            TroveManagerSnapshot.collateral_ratio.label("cr"),
+            func.coalesce(TroveManagerSnapshot.collateral_ratio, 0).label(
+                "cr"
+            ),
             TroveManagerParameter.mcr.label("mcr"),
             TroveManagerParameter.interest_rate.label("rate"),
             Collateral.latest_price.label("price"),
