@@ -4,7 +4,7 @@ from settings.config import settings
 
 CHAIN_NAME = "ethereum"
 CHAIN_ID = 1
-SUBGRAPH = "https://api.thegraph.com/subgraphs/name/benber86/prisma"
+SUBGRAPH = f"https://gateway-arbitrum.network.thegraph.com/api/{settings.SUBGRAPH_API_KEY}/subgraphs/id/F83FT8qLMwt8n7n9JmcrJKFZp8D9sWeFH3iYdgXFWSDp"
 STABLECOIN = "0x4591DBfF62656E7859Afe5e45f6f47D3669fBB28"
 LABELS = {
     "0xed8B26D99834540C5013701bB3715faFD39993Ba": "Stability Pool",
@@ -15,12 +15,8 @@ LABELS = {
     "0xc89570207c5BA1B0E3cD372172cCaEFB173DB270": "Curve ETH/mkUSD Pool",
 }
 START_TIME = 1691625600
-CURVE_SUBGRAPH = (
-    "https://api.thegraph.com/subgraphs/name/convex-community/volume-mainnet"
-)
-CVXPRISMA_SUBGRAPH = (
-    "https://api.thegraph.com/subgraphs/name/convex-community/cvxprisma"
-)
+CURVE_SUBGRAPH = f"https://subgraph.satsuma-prod.com/{settings.ALCHEMY_SUBGRAPH_KEY}/curve-1/volume-mainnet/api"
+CVXPRISMA_SUBGRAPH = f"https://gateway-arbitrum.network.thegraph.com/api/{settings.SUBGRAPH_API_KEY}/subgraphs/id/2WVR8gRct7trp1v1YdaRQXMmHngDiFugwu8NT38ksRMy"
 PROVIDER = Web3.HTTPProvider(
     f"https://eth-mainnet.g.alchemy.com/v2/{settings.ALCHEMY_API_KEY}",
     request_kwargs={"timeout": settings.WEB3_REQUEST_TIMEOUT},

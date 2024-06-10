@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     ETHERSCAN_TOKEN: str | None
     FLIPSIDE_API_KEY: str | None
     REDIS_PASSWORD: str
+    ALCHEMY_SUBGRAPH_KEY: str
+    SUBGRAPH_API_KEY: str
 
     CELERY_BROKER_URL: str | None
     CELERY_RESULT_BACKEND: str | None
