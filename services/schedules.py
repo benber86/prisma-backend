@@ -5,7 +5,7 @@ from utils.const import CHAINS
 SUBGRAPH_SYNC_SCHEDULE = {
     f"sync-task-{chain}": {
         "task": "services.sync.back_populate.back_populate_chain",
-        "schedule": timedelta(minutes=5),
+        "schedule": timedelta(minutes=30),
         "args": (
             chain,
             chain_id,
@@ -18,7 +18,7 @@ SUBGRAPH_SYNC_SCHEDULE = {
 PRICE_SYNC_SCHEDULE = {
     f"sync-price-{chain}": {
         "task": "services.prices.populate_mkusd.populate_mkusd_price_history",
-        "schedule": timedelta(seconds=3600),
+        "schedule": timedelta(minutes=60),
         "args": (
             chain,
             chain_id,
@@ -39,7 +39,7 @@ HOLDERS_SCHEDULE = {
 DEPTH_SCHEDULE = {
     f"update-holders-{chain}": {
         "task": "services.prices.liquidity_depth.get_depth_data",
-        "schedule": timedelta(minutes=10),
+        "schedule": timedelta(minutes=60),
         "args": (chain,),
     }
     for chain, _ in CHAINS.items()
@@ -48,7 +48,7 @@ DEPTH_SCHEDULE = {
 IMPACT_SCHEDULE = {
     f"update-impact-{chain}": {
         "task": "services.prices.collateral.get_impact_data",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60),
         "args": (chain,),
     }
     for chain, _ in CHAINS.items()
@@ -57,7 +57,7 @@ IMPACT_SCHEDULE = {
 REVENUE_SCHEDULE = {
     f"update-revenue-{chain}": {
         "task": "services.sync.revenue.update_revenue_snapshots",
-        "schedule": timedelta(minutes=20),
+        "schedule": timedelta(minutes=60),
         "args": (
             chain,
             chain_id,
@@ -69,7 +69,7 @@ REVENUE_SCHEDULE = {
 CVXPRISMA_SYNC_SCHEDULE = {
     f"sync-cvxprisma-{chain}": {
         "task": "services.cvxprisma.sync.back_populate_cvxprisma",
-        "schedule": timedelta(minutes=10),
+        "schedule": timedelta(minutes=60),
         "args": (
             chain,
             chain_id,
@@ -81,7 +81,7 @@ CVXPRISMA_SYNC_SCHEDULE = {
 DAO_OWNERSHIP_SYNC_SCHEDULE = {
     f"sync-dao-ownership-{chain}": {
         "task": "services.dao.sync.back_populate_ownership_votes",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60),
         "args": (
             chain,
             chain_id,
@@ -93,7 +93,7 @@ DAO_OWNERSHIP_SYNC_SCHEDULE = {
 DAO_INCENTIVE_SYNC_SCHEDULE = {
     f"sync-dao-incentive-{chain}": {
         "task": "services.dao.sync.back_populate_incentive_votes",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60),
         "args": (
             chain,
             chain_id,
@@ -105,7 +105,7 @@ DAO_INCENTIVE_SYNC_SCHEDULE = {
 BOOST_DATA_SCHEDULE = {
     f"sync-dao-incentive-{chain}": {
         "task": "services.dao.sync.back_populate_boost_data",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60 * 24),
         "args": (
             chain,
             chain_id,
@@ -117,7 +117,7 @@ BOOST_DATA_SCHEDULE = {
 WEIGHT_DATA_SCHEDULE = {
     f"sync-dao-weight-{chain}": {
         "task": "services.dao.sync.back_populate_weight_data",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60 * 24),
         "args": (
             chain,
             chain_id,
@@ -129,7 +129,7 @@ WEIGHT_DATA_SCHEDULE = {
 ZAP_DATA_SCHEDULE = {
     f"sync-trove-zaps-{chain}": {
         "task": "services.sync.back_populate.sync_zaps",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=60),
         "args": (
             chain,
             chain_id,
@@ -141,7 +141,7 @@ ZAP_DATA_SCHEDULE = {
 LABEL_SCHEDULE = {
     f"label-users-{chain}": {
         "task": "utils.labels.label_users.update_labels",
-        "schedule": timedelta(days=15),
+        "schedule": timedelta(days=7),
         "args": (chain,),
     }
     for chain, chain_id in CHAINS.items()
