@@ -15,7 +15,7 @@ LABELS = {
     "0xc89570207c5BA1B0E3cD372172cCaEFB173DB270": "Curve ETH/mkUSD Pool",
 }
 START_TIME = 1691625600
-CURVE_SUBGRAPH = f"https://subgraph.satsuma-prod.com/{settings.ALCHEMY_SUBGRAPH_KEY}/curve-1/volume-mainnet/api"
+CURVE_SUBGRAPH = f"https://gateway-arbitrum.network.thegraph.com/api/{settings.SUBGRAPH_API_KEY}/subgraphs/id/7FpNAjYhdo41FSdEro5P55uviKw69yhfPgxiWzPkr9au"
 CVXPRISMA_SUBGRAPH = f"https://gateway-arbitrum.network.thegraph.com/api/{settings.SUBGRAPH_API_KEY}/subgraphs/id/2WVR8gRct7trp1v1YdaRQXMmHngDiFugwu8NT38ksRMy"
 PROVIDER = Web3.HTTPProvider(
     f"https://eth-mainnet.g.alchemy.com/v2/{settings.ALCHEMY_API_KEY}",
